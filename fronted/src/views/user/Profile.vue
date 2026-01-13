@@ -1,34 +1,27 @@
 <template>
-  <div class="profile-container">
+  <div class="profile-page">
     <!-- 个人信息头部 -->
     <div class="profile-header">
-      <div class="header-background"></div>
-      <div class="user-info-card">
-        <div class="avatar-wrapper">
-          <AvatarUpload 
-            ref="avatarUploadRef"
-            size="large"
-            :show-buttons="false"
-            @avatar-updated="handleAvatarUpdated"
-            @avatar-removed="handleAvatarRemoved"
-          />
+      <div class="user-card">
+        <div class="avatar-section">
+          <AvatarUpload ref="avatarUploadRef" size="large" :show-buttons="false" @avatar-updated="handleAvatarUpdated" @avatar-removed="handleAvatarRemoved"/>
           <div class="avatar-actions">
-            <el-button type="primary" size="small" circle @click="triggerAvatarUpload">
-              <el-icon><Camera /></el-icon>
-            </el-button>
-            <el-button type="danger" size="small" circle @click="triggerAvatarRemove" v-if="userStore.userInfo?.avatar">
-              <el-icon><Delete /></el-icon>
-            </el-button>
+            <button class="avatar-btn primary" @click="triggerAvatarUpload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
+            </button>
+            <button class="avatar-btn danger" @click="triggerAvatarRemove" v-if="userStore.userInfo?.avatar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
           </div>
         </div>
-        <div class="user-basic-info">
-          <h2 class="user-name">{{ userStore.userInfo?.realName || userStore.userInfo?.username || '未设置' }}</h2>
+        <div class="user-info">
+          <h2>{{ userStore.userInfo?.realName || userStore.userInfo?.username || '未设置' }}</h2>
           <p class="user-email">{{ userStore.userInfo?.email || '未设置邮箱' }}</p>
           <div class="user-tags">
-            <el-tag v-if="userStore.userInfo?.userType === 0" type="success">普通用户</el-tag>
-            <el-tag v-else-if="userStore.userInfo?.userType === 1" type="warning">医生</el-tag>
-            <el-tag v-else-if="userStore.userInfo?.userType === 2" type="danger">管理员</el-tag>
-            <el-tag v-if="userStore.userInfo?.phone" type="info">已绑定手机</el-tag>
+            <span class="tag success" v-if="userStore.userInfo?.userType === 0">普通用户</span>
+            <span class="tag warning" v-else-if="userStore.userInfo?.userType === 1">医生</span>
+            <span class="tag danger" v-else-if="userStore.userInfo?.userType === 2">管理员</span>
+            <span class="tag info" v-if="userStore.userInfo?.phone">已绑定手机</span>
           </div>
         </div>
       </div>
@@ -41,106 +34,42 @@
         <el-col :xs="24" :lg="14">
           <div class="form-card">
             <div class="card-header">
-              <el-icon class="header-icon"><User /></el-icon>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
               <h3>基本信息</h3>
             </div>
-            <el-form
-              ref="profileFormRef"
-              :model="profileForm"
-              :rules="profileRules"
-              label-width="80px"
-              class="modern-form"
-            >
+            <el-form ref="profileFormRef" :model="profileForm" :rules="profileRules" label-width="80px" class="profile-form">
               <div class="form-grid">
                 <el-form-item label="用户名" prop="username">
-                  <el-input 
-                    v-model="profileForm.username" 
-                    disabled 
-                    :prefix-icon="UserFilled"
-                  />
+                  <el-input v-model="profileForm.username" disabled prefix-icon="User"/>
                 </el-form-item>
-
                 <el-form-item label="真实姓名" prop="realName">
-                  <el-input
-                    v-model="profileForm.realName"
-                    placeholder="请输入真实姓名"
-                    clearable
-                    :prefix-icon="User"
-                  />
+                  <el-input v-model="profileForm.realName" placeholder="请输入真实姓名" clearable/>
                 </el-form-item>
-
                 <el-form-item label="邮箱" prop="email">
-                  <el-input
-                    v-model="profileForm.email"
-                    placeholder="请输入邮箱"
-                    clearable
-                    :prefix-icon="Message"
-                  />
+                  <el-input v-model="profileForm.email" placeholder="请输入邮箱" clearable/>
                 </el-form-item>
-
                 <el-form-item label="手机号码" prop="phone">
-                  <el-input
-                    v-model="profileForm.phone"
-                    placeholder="请输入手机号码"
-                    clearable
-                    :prefix-icon="Phone"
-                  />
+                  <el-input v-model="profileForm.phone" placeholder="请输入手机号码" clearable/>
                 </el-form-item>
-
                 <el-form-item label="性别" prop="gender">
-                  <el-radio-group v-model="profileForm.gender" class="gender-group">
-                    <el-radio label="男" class="gender-radio">
-                      <el-icon><Male /></el-icon>
-                      <span>男</span>
-                    </el-radio>
-                    <el-radio label="女" class="gender-radio">
-                      <el-icon><Female /></el-icon>
-                      <span>女</span>
-                    </el-radio>
+                  <el-radio-group v-model="profileForm.gender">
+                    <el-radio label="男">男</el-radio>
+                    <el-radio label="女">女</el-radio>
                   </el-radio-group>
                 </el-form-item>
-
                 <el-form-item label="生日" prop="birthday">
-                  <el-date-picker
-                    v-model="profileForm.birthday"
-                    type="date"
-                    placeholder="请选择生日"
-                    style="width: 100%"
-                    :prefix-icon="Calendar"
-                  />
+                  <el-date-picker v-model="profileForm.birthday" type="date" placeholder="请选择生日" style="width: 100%"/>
                 </el-form-item>
               </div>
-
               <el-form-item label="身份证号" prop="idCard">
-                <el-input
-                  v-model="profileForm.idCard"
-                  placeholder="请输入身份证号"
-                  clearable
-                  :prefix-icon="CreditCard"
-                />
+                <el-input v-model="profileForm.idCard" placeholder="请输入身份证号" clearable/>
               </el-form-item>
-
               <el-form-item label="个人简介">
-                <el-input
-                  v-model="profileForm.remark"
-                  type="textarea"
-                  :rows="4"
-                  placeholder="介绍一下自己吧..."
-                  maxlength="200"
-                  show-word-limit
-                  class="textarea-modern"
-                />
+                <el-input v-model="profileForm.remark" type="textarea" :rows="3" placeholder="介绍一下自己吧..." maxlength="200" show-word-limit/>
               </el-form-item>
-
               <div class="form-actions">
-                <el-button type="primary" @click="saveProfile" :loading="saving" size="large">
-                  <el-icon><Check /></el-icon>
-                  保存修改
-                </el-button>
-                <el-button @click="resetForm" size="large">
-                  <el-icon><RefreshLeft /></el-icon>
-                  重置
-                </el-button>
+                <el-button type="primary" @click="saveProfile" :loading="saving" class="save-btn">保存修改</el-button>
+                <el-button @click="resetForm">重置</el-button>
               </div>
             </el-form>
           </div>
@@ -150,68 +79,33 @@
         <el-col :xs="24" :lg="10">
           <div class="form-card">
             <div class="card-header">
-              <el-icon class="header-icon"><Lock /></el-icon>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
               <h3>安全设置</h3>
             </div>
-            <el-form
-              ref="passwordFormRef"
-              :model="passwordForm"
-              :rules="passwordRules"
-              label-width="80px"
-              class="modern-form"
-            >
+            <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-width="80px" class="profile-form">
               <el-form-item label="当前密码" prop="oldPassword">
-                <el-input
-                  v-model="passwordForm.oldPassword"
-                  type="password"
-                  placeholder="请输入当前密码"
-                  show-password
-                  clearable
-                  :prefix-icon="Lock"
-                />
+                <el-input v-model="passwordForm.oldPassword" type="password" placeholder="请输入当前密码" show-password clearable/>
               </el-form-item>
-
               <el-form-item label="新密码" prop="newPassword">
-                <el-input
-                  v-model="passwordForm.newPassword"
-                  type="password"
-                  placeholder="请输入新密码"
-                  show-password
-                  clearable
-                  :prefix-icon="Key"
-                />
+                <el-input v-model="passwordForm.newPassword" type="password" placeholder="请输入新密码" show-password clearable/>
               </el-form-item>
-
               <el-form-item label="确认密码" prop="confirmPassword">
-                <el-input
-                  v-model="passwordForm.confirmPassword"
-                  type="password"
-                  placeholder="请再次输入新密码"
-                  show-password
-                  clearable
-                  :prefix-icon="Key"
-                />
+                <el-input v-model="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" show-password clearable/>
               </el-form-item>
-
               <div class="form-actions">
-                <el-button type="danger" @click="changePassword" :loading="changingPassword" size="large">
-                  <el-icon><Edit /></el-icon>
-                  修改密码
-                </el-button>
+                <el-button type="danger" @click="changePassword" :loading="changingPassword" class="change-pwd-btn">修改密码</el-button>
               </div>
             </el-form>
 
-            <!-- 安全提示 -->
             <div class="security-tips">
-              <h4>
-                <el-icon><InfoFilled /></el-icon>
-                安全提示
-              </h4>
+              <div class="tips-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>安全提示</span>
+              </div>
               <ul>
                 <li>密码长度应在6-20个字符之间</li>
                 <li>建议包含字母、数字和特殊字符</li>
                 <li>定期更换密码保护账户安全</li>
-                <li>不要在公共设备上保存密码</li>
               </ul>
             </div>
           </div>
@@ -227,673 +121,117 @@ import { useUserStore } from '@/stores/user'
 import { userAPI } from '@/api/user'
 import { authAPI } from '@/api/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  Upload, User, UserFilled, Message, Phone, Male, Female, Calendar, 
-  CreditCard, Check, RefreshLeft, Lock, Key, Edit, InfoFilled, Camera, Delete
-} from '@element-plus/icons-vue'
 import AvatarUpload from '@/components/common/AvatarUpload.vue'
 
 const userStore = useUserStore()
-
 const profileFormRef = ref()
 const passwordFormRef = ref()
 const avatarUploadRef = ref()
 const saving = ref(false)
 const changingPassword = ref(false)
 
-// 个人资料表单
-const profileForm = reactive({
-  username: '',
-  realName: '',
-  email: '',
-  phone: '',
-  gender: null,
-  birthday: null,
-  idCard: '',
-  remark: ''
-})
+const profileForm = reactive({ username: '', realName: '', email: '', phone: '', gender: null, birthday: null, idCard: '', remark: '' })
+const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 
-// 修改密码表单
-const passwordForm = reactive({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-})
+const validateEmail = (rule, value, callback) => { if (value) { const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; if (!emailRegex.test(value)) { callback(new Error('请输入正确的邮箱格式')) } } callback() }
+const validatePhone = (rule, value, callback) => { if (value) { const phoneRegex = /^1[3-9]\d{9}$/; if (!phoneRegex.test(value)) { callback(new Error('请输入正确的手机号码')) } } callback() }
+const validateIdCard = (rule, value, callback) => { if (value) { const idCardRegex = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/; if (!idCardRegex.test(value)) { callback(new Error('请输入正确的身份证号码')) } } callback() }
+const validateConfirmPassword = (rule, value, callback) => { if (value !== passwordForm.newPassword) { callback(new Error('两次输入的密码不一致')) } callback() }
 
-// 验证邮箱
-const validateEmail = (rule, value, callback) => {
-  if (value) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(value)) {
-      callback(new Error('请输入正确的邮箱格式'))
-    }
-  }
-  callback()
-}
-
-// 验证手机号
-const validatePhone = (rule, value, callback) => {
-  if (value) {
-    const phoneRegex = /^1[3-9]\d{9}$/
-    if (!phoneRegex.test(value)) {
-      callback(new Error('请输入正确的手机号码'))
-    }
-  }
-  callback()
-}
-
-// 验证身份证
-const validateIdCard = (rule, value, callback) => {
-  if (value) {
-    const idCardRegex = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/
-    if (!idCardRegex.test(value)) {
-      callback(new Error('请输入正确的身份证号码'))
-    }
-  }
-  callback()
-}
-
-// 验证新密码确认
-const validateConfirmPassword = (rule, value, callback) => {
-  if (value !== passwordForm.newPassword) {
-    callback(new Error('两次输入的密码不一致'))
-  }
-  callback()
-}
-
-// 个人资料验证规则
 const profileRules = {
-  realName: [
-    { required: true, message: '请输入真实姓名', trigger: 'blur' },
-    { min: 2, max: 10, message: '姓名长度在 2 到 10 个字符', trigger: 'blur' }
-  ],
-  email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { validator: validateEmail, trigger: 'blur' }
-  ],
-  phone: [
-    { validator: validatePhone, trigger: 'blur' }
-  ],
-  idCard: [
-    { validator: validateIdCard, trigger: 'blur' }
-  ]
+  realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }, { min: 2, max: 10, message: '姓名长度在 2 到 10 个字符', trigger: 'blur' }],
+  email: [{ required: true, message: '请输入邮箱地址', trigger: 'blur' }, { validator: validateEmail, trigger: 'blur' }],
+  phone: [{ validator: validatePhone, trigger: 'blur' }],
+  idCard: [{ validator: validateIdCard, trigger: 'blur' }]
 }
 
-// 密码验证规则
 const passwordRules = {
-  oldPassword: [
-    { required: true, message: '请输入当前密码', trigger: 'blur' }
-  ],
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度在 6 到 20 个字符', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认新密码', trigger: 'blur' },
-    { validator: validateConfirmPassword, trigger: 'blur' }
-  ]
+  oldPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  newPassword: [{ required: true, message: '请输入新密码', trigger: 'blur' }, { min: 6, max: 20, message: '密码长度在 6 到 20 个字符', trigger: 'blur' }],
+  confirmPassword: [{ required: true, message: '请确认新密码', trigger: 'blur' }, { validator: validateConfirmPassword, trigger: 'blur' }]
 }
 
-// 初始化表单数据
 const initProfileForm = () => {
   const userInfo = userStore.userInfo
-  
-  if (userInfo) {
-    Object.assign(profileForm, {
-      username: userInfo.username,
-      realName: userInfo.realName || '',
-      email: userInfo.email || '',
-      phone: userInfo.phone || '',
-      gender: userInfo.gender || null,
-      birthday: userInfo.birthday || null,
-      idCard: userInfo.idCard || '',
-      remark: userInfo.remark || ''
-    })
-  }
+  if (userInfo) { Object.assign(profileForm, { username: userInfo.username, realName: userInfo.realName || '', email: userInfo.email || '', phone: userInfo.phone || '', gender: userInfo.gender || null, birthday: userInfo.birthday || null, idCard: userInfo.idCard || '', remark: userInfo.remark || '' }) }
 }
 
-// 保存个人资料
 const saveProfile = async () => {
   if (saving.value) return
-
-  try {
-    const valid = await profileFormRef.value.validate()
-    if (!valid) return
-
-    saving.value = true
-
-    const response = await userAPI.updateProfile(profileForm)
-    
-    if (response.success) {
-      ElMessage.success('个人资料已更新')
-      // 更新本地用户信息
-      await userStore.getCurrentUser()
-    }
-  } catch (error) {
-    console.error('保存个人资料失败:', error)
-  } finally {
-    saving.value = false
-  }
+  try { const valid = await profileFormRef.value.validate(); if (!valid) return; saving.value = true; const response = await userAPI.updateProfile(profileForm); if (response.success) { ElMessage.success('个人资料已更新'); await userStore.getCurrentUser() } } catch (error) { console.error('保存个人资料失败:', error) } finally { saving.value = false }
 }
 
-// 重置表单
-const resetForm = () => {
-  profileFormRef.value.clearValidate()
-  initProfileForm()
-}
+const resetForm = () => { profileFormRef.value.clearValidate(); initProfileForm() }
 
-// 修改密码
 const changePassword = async () => {
   if (changingPassword.value) return
-
-  try {
-    const valid = await passwordFormRef.value.validate()
-    if (!valid) return
-
-    changingPassword.value = true
-
-    const response = await authAPI.changePassword({
-      oldPassword: passwordForm.oldPassword,
-      newPassword: passwordForm.newPassword
-    })
-
-    if (response.success) {
-      ElMessage.success('密码修改成功，请重新登录')
-      // 清空表单
-      Object.assign(passwordForm, {
-        oldPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      })
-      passwordFormRef.value.clearValidate()
-      
-      // 延迟登出，给用户看到成功消息
-      setTimeout(() => {
-        userStore.logout()
-      }, 1500)
-    }
-  } catch (error) {
-    console.error('修改密码失败:', error)
-  } finally {
-    changingPassword.value = false
-  }
+  try { const valid = await passwordFormRef.value.validate(); if (!valid) return; changingPassword.value = true; const response = await authAPI.changePassword({ oldPassword: passwordForm.oldPassword, newPassword: passwordForm.newPassword }); if (response.success) { ElMessage.success('密码修改成功，请重新登录'); Object.assign(passwordForm, { oldPassword: '', newPassword: '', confirmPassword: '' }); passwordFormRef.value.clearValidate(); setTimeout(() => { userStore.logout() }, 1500) } } catch (error) { console.error('修改密码失败:', error) } finally { changingPassword.value = false }
 }
 
-// 触发头像上传
-const triggerAvatarUpload = () => {
-  const avatarComponent = document.querySelector('.avatar-upload input[type="file"]')
-  if (avatarComponent) {
-    avatarComponent.click()
-  }
-}
+const triggerAvatarUpload = () => { const avatarComponent = document.querySelector('.avatar-upload input[type="file"]'); if (avatarComponent) { avatarComponent.click() } }
+const triggerAvatarRemove = async () => { try { await ElMessageBox.confirm('确定要删除当前头像吗？', '删除头像', { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }); userStore.updateAvatar(null); ElMessage.success('头像删除成功') } catch (error) {} }
+const handleAvatarUpdated = (fileInfo) => { ElMessage.success('头像更新成功') }
+const handleAvatarRemoved = () => {}
 
-// 触发头像删除
-const triggerAvatarRemove = async () => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除当前头像吗？',
-      '删除头像',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    // 触发AvatarUpload组件的删除方法
-    userStore.updateAvatar(null)
-    ElMessage.success('头像删除成功')
-  } catch (error) {
-    // 用户取消删除
-  }
-}
-
-// 头像更新成功事件处理
-const handleAvatarUpdated = (fileInfo) => {
-  console.log('头像更新成功:', fileInfo)
-  ElMessage.success('头像更新成功')
-}
-
-// 头像删除成功事件处理
-const handleAvatarRemoved = () => {
-  console.log('头像已删除')
-}
-
-onMounted(() => {
-  initProfileForm()
-})
+onMounted(() => { initProfileForm() })
 </script>
 
 <style scoped>
-.profile-container {
-  background: #f5f7fa;
-  min-height: 100vh;
-  padding: 24px;
-}
+.profile-page { max-width: 1200px; margin: 0 auto; }
 
-/* 个人信息头部 */
-.profile-header {
-  margin-bottom: 24px;
-}
+/* 头部卡片 */
+.profile-header { margin-bottom: 24px; }
+.user-card { background: linear-gradient(135deg, #0891B2 0%, #0E7490 100%); border-radius: 20px; padding: 32px; display: flex; align-items: center; gap: 32px; }
+.avatar-section { position: relative; }
+.avatar-actions { position: absolute; bottom: -8px; right: -8px; display: flex; gap: 6px; }
+.avatar-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.avatar-btn.primary { background: #0891B2; color: white; }
+.avatar-btn.primary:hover { background: #0E7490; transform: scale(1.1); }
+.avatar-btn.danger { background: #DC2626; color: white; }
+.avatar-btn.danger:hover { background: #B91C1C; transform: scale(1.1); }
+.user-info { flex: 1; color: white; }
+.user-info h2 { font-size: 1.75rem; font-weight: 700; margin: 0 0 8px; }
+.user-email { font-size: 1rem; margin: 0 0 16px; opacity: 0.9; }
+.user-tags { display: flex; gap: 10px; flex-wrap: wrap; }
+.tag { padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+.tag.success { background: rgba(5, 150, 105, 0.2); color: #A7F3D0; border: 1px solid rgba(167, 243, 208, 0.3); }
+.tag.warning { background: rgba(217, 119, 6, 0.2); color: #FDE68A; border: 1px solid rgba(253, 230, 138, 0.3); }
+.tag.danger { background: rgba(220, 38, 38, 0.2); color: #FECACA; border: 1px solid rgba(254, 202, 202, 0.3); }
+.tag.info { background: rgba(34, 211, 238, 0.2); color: #A5F3FC; border: 1px solid rgba(165, 243, 252, 0.3); }
 
-.user-info-card {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-  background: #fff;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e4e7ed;
-}
+/* 表单卡片 */
+.profile-content { padding: 0; }
+.form-card { background: white; border-radius: 20px; padding: 28px; border: 1px solid #E2E8F0; margin-bottom: 24px; }
+.card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #E2E8F0; }
+.card-header svg { color: #0891B2; }
+.card-header h3 { font-size: 1.1rem; font-weight: 600; color: #164E63; margin: 0; }
 
-.avatar-wrapper {
-  position: relative;
-  flex-shrink: 0;
-}
+/* 表单样式 */
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.profile-form :deep(.el-form-item) { margin-bottom: 20px; }
+.profile-form :deep(.el-form-item__label) { font-weight: 500; color: #374151; }
+.profile-form :deep(.el-input__wrapper) { border-radius: 10px; border: 2px solid #E2E8F0; box-shadow: none; padding: 8px 12px; transition: all 0.2s; }
+.profile-form :deep(.el-input__wrapper:hover) { border-color: #A5F3FC; }
+.profile-form :deep(.el-input.is-focus .el-input__wrapper) { border-color: #0891B2; box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1); }
+.profile-form :deep(.el-textarea__inner) { border-radius: 10px; border: 2px solid #E2E8F0; padding: 12px; transition: all 0.2s; }
+.profile-form :deep(.el-textarea__inner:hover) { border-color: #A5F3FC; }
+.profile-form :deep(.el-textarea__inner:focus) { border-color: #0891B2; box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1); }
+.profile-form :deep(.el-radio__input.is-checked .el-radio__inner) { background-color: #0891B2; border-color: #0891B2; }
+.profile-form :deep(.el-radio__input.is-checked + .el-radio__label) { color: #0891B2; }
 
-.avatar-actions {
-  position: absolute;
-  bottom: -5px;
-  right: -5px;
-  display: flex;
-  gap: 8px;
-}
-
-.avatar-actions .el-button {
-  width: 32px;
-  height: 32px;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-}
-
-.avatar-actions .el-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.user-basic-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.user-name {
-  font-size: 32px;
-  font-weight: 700;
-  color: #2c3e50;
-  margin: 0 0 10px 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.user-email {
-  font-size: 16px;
-  color: #64748b;
-  margin: 0 0 20px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.user-tags {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.user-tags .el-tag {
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-weight: 500;
-  border: none;
-  font-size: 13px;
-}
-
-/* 表单内容区 */
-.profile-content {
-  padding: 40px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.form-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 30px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
-  margin-bottom: 20px;
-  transition: all 0.3s ease;
-}
-
-.form-card:hover {
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid #f1f5f9;
-}
-
-.header-icon {
-  font-size: 24px;
-  color: #667eea;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.card-header h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-}
-
-/* 现代化表单样式 */
-.modern-form {
-  --el-form-label-font-size: 14px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.modern-form :deep(.el-form-item) {
-  margin-bottom: 24px;
-}
-
-.modern-form :deep(.el-form-item__label) {
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-}
-
-.modern-form :deep(.el-input) {
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.modern-form :deep(.el-input__wrapper) {
-  border-radius: 12px;
-  border: 2px solid #e2e8f0;
-  transition: all 0.3s ease;
-  padding: 12px 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-}
-
-.modern-form :deep(.el-input__wrapper:hover) {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
-}
-
-.modern-form :deep(.el-input.is-focus .el-input__wrapper) {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.modern-form :deep(.el-input.is-disabled .el-input__wrapper) {
-  background-color: #f8fafc;
-  border-color: #e2e8f0;
-}
-
-.modern-form :deep(.el-date-editor) {
-  width: 100%;
-}
-
-.modern-form :deep(.el-date-editor .el-input__wrapper) {
-  border-radius: 12px;
-}
-
-/* 性别选择样式 */
-.gender-group {
-  display: flex;
-  gap: 20px;
-}
-
-.gender-radio :deep(.el-radio__label) {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  padding-left: 8px;
-}
-
-.gender-radio :deep(.el-radio__input.is-checked .el-radio__inner) {
-  background-color: #667eea;
-  border-color: #667eea;
-}
-
-/* 文本域样式 */
-.textarea-modern :deep(.el-textarea__inner) {
-  border-radius: 12px;
-  border: 2px solid #e2e8f0;
-  padding: 16px;
-  font-family: inherit;
-  transition: all 0.3s ease;
-  resize: vertical;
-  min-height: 100px;
-}
-
-.textarea-modern :deep(.el-textarea__inner:hover) {
-  border-color: #cbd5e1;
-}
-
-.textarea-modern :deep(.el-textarea__inner:focus) {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-/* 按钮样式 */
-.form-actions {
-  display: flex;
-  gap: 16px;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.form-actions .el-button {
-  border-radius: 12px;
-  padding: 12px 24px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-}
-
-.form-actions .el-button--primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  color: white;
-}
-
-.form-actions .el-button--primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-}
-
-.form-actions .el-button--danger {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  border: none;
-  color: white;
-}
-
-.form-actions .el-button--danger:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(245, 87, 108, 0.3);
-}
-
-.form-actions .el-button:not(.el-button--primary):not(.el-button--danger) {
-  background: #f8fafc;
-  color: #64748b;
-  border-color: #e2e8f0;
-}
-
-.form-actions .el-button:not(.el-button--primary):not(.el-button--danger):hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
-}
+/* 按钮 */
+.form-actions { display: flex; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #E2E8F0; }
+.save-btn { background: linear-gradient(135deg, #059669 0%, #10B981 100%); border: none; border-radius: 10px; padding: 12px 28px; font-weight: 600; }
+.save-btn:hover { background: linear-gradient(135deg, #047857 0%, #059669 100%); }
+.change-pwd-btn { background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); border: none; border-radius: 10px; padding: 12px 28px; font-weight: 600; }
+.change-pwd-btn:hover { background: linear-gradient(135deg, #B91C1C 0%, #DC2626 100%); }
 
 /* 安全提示 */
-.security-tips {
-  margin-top: 30px;
-  padding: 20px;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 12px;
-  border: 1px solid #f59e0b;
-}
+.security-tips { margin-top: 24px; padding: 20px; background: #FFF7ED; border-radius: 12px; border: 1px solid #FED7AA; }
+.tips-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 600; color: #D97706; }
+.security-tips ul { margin: 0; padding-left: 20px; color: #92400E; font-size: 0.875rem; line-height: 1.8; }
 
-.security-tips h4 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 15px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #92400e;
-}
-
-.security-tips ul {
-  margin: 0;
-  padding-left: 20px;
-  color: #92400e;
-}
-
-.security-tips li {
-  margin-bottom: 8px;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .user-info-card {
-    flex-direction: column;
-    text-align: center;
-    padding: 30px 20px;
-  }
-  
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .form-actions {
-    flex-direction: column;
-  }
-  
-  .form-actions .el-button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .profile-header {
-    padding: 20px 10px 100px;
-  }
-  
-  .profile-content {
-    padding: 20px 10px;
-  }
-  
-  .form-card {
-    padding: 20px;
-    margin: 0 10px 20px;
-  }
-  
-  .user-name {
-    font-size: 24px;
-  }
-  
-  .gender-group {
-    flex-direction: column;
-    gap: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .user-info-card {
-    margin: 0 10px;
-    padding: 20px 15px;
-  }
-  
-  .avatar-actions {
-    bottom: -3px;
-    right: -3px;
-  }
-  
-  .avatar-actions .el-button {
-    width: 28px;
-    height: 28px;
-  }
-}
-
-/* 深色模式兼容 */
-@media (prefers-color-scheme: dark) {
-  .form-card {
-    background: #1f2937;
-    border-color: #374151;
-    color: #f9fafb;
-  }
-  
-  .card-header h3 {
-    color: #f9fafb;
-  }
-  
-  .modern-form :deep(.el-form-item__label) {
-    color: #d1d5db;
-  }
-}
-
-/* 动画效果 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.form-card {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.user-info-card {
-  animation: fadeInUp 0.8s ease-out;
-}
-
-/* 滚动条样式 */
-:deep(.el-textarea__inner)::-webkit-scrollbar {
-  width: 6px;
-}
-
-:deep(.el-textarea__inner)::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 3px;
-}
-
-:deep(.el-textarea__inner)::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-:deep(.el-textarea__inner)::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-</style> 
+/* 响应式 */
+@media (max-width: 1024px) { .form-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .user-card { flex-direction: column; text-align: center; } .user-info h2 { font-size: 1.5rem; } .user-tags { justify-content: center; } .form-actions { flex-direction: column; } .form-actions .el-button { width: 100%; } }
+</style>
