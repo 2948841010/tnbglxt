@@ -1006,6 +1006,37 @@ async def delete_knowledge_item(item_id: str):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
+class BatchDeleteRequest(BaseModel):
+    """批量删除请求"""
+    item_ids: List[str] = Field(..., description="要删除的知识条目ID列表")
+
+
+@app.post("/knowledge/items/batch-delete", summary="批量删除知识条目")
+async def batch_delete_knowledge_items(request: BatchDeleteRequest):
+    """批量删除多个知识条目"""
+    try:
+        if not request.item_ids:
+            return {"success": False, "error": "请提供要删除的条目ID"}
+        
+        collection = retrieval_service.collection
+        
+        # 批量删除
+        collection.delete(ids=request.item_ids)
+        deleted_count = len(request.item_ids)
+        
+        retrieval_service.total_documents = collection.count()
+        
+        return {
+            "success": True,
+            "message": f"成功删除 {deleted_count} 个知识条目",
+            "deleted_count": deleted_count
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
 @app.delete("/documents/{doc_id}/all", summary="删除文档及其所有知识条目")
 async def delete_document_with_items(doc_id: str):
     """删除文档及其下所有知识条目"""

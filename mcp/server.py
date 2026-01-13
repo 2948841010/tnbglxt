@@ -62,33 +62,33 @@ mcp = FastMCP("medical_system_assistant", port=args.port, host=args.host)
 
 def normalize_datetime_to_utc(dt_input):
     """
-    标准化时间为UTC时区
+    标准化时间处理
     
     Args:
         dt_input: datetime对象或字符串
         
     Returns:
-        带UTC时区的datetime对象
+        无时区的datetime对象（用于比较）
     """
     if isinstance(dt_input, str):
         # 处理字符串时间
         if dt_input.endswith('Z'):
-            return datetime.fromisoformat(dt_input.replace('Z', '+00:00'))
-        elif '+' not in dt_input and 'T' in dt_input:
-            # 处理无时区的ISO格式，假设为UTC时间
-            return datetime.fromisoformat(dt_input).replace(tzinfo=timezone.utc)
+            return datetime.fromisoformat(dt_input.replace('Z', '+00:00')).replace(tzinfo=None)
+        elif '+' in dt_input:
+            # 有时区信息的字符串
+            return datetime.fromisoformat(dt_input).replace(tzinfo=None)
         else:
-            return datetime.fromisoformat(dt_input)
+            # 无时区的ISO格式，直接解析
+            try:
+                return datetime.fromisoformat(dt_input)
+            except:
+                return datetime.now()
     elif isinstance(dt_input, datetime):
-        # 处理datetime对象
-        if dt_input.tzinfo is None:
-            # 无时区信息，假设为UTC
-            return dt_input.replace(tzinfo=timezone.utc)
-        else:
-            return dt_input
+        # 处理datetime对象，移除时区信息
+        return dt_input.replace(tzinfo=None)
     else:
-        # 兜底：当前UTC时间
-        return datetime.now(timezone.utc)
+        # 兜底：当前时间
+        return datetime.now()
 
 def get_mysql_connection():
     """获取MySQL数据库连接"""
@@ -151,8 +151,8 @@ def query_user_health_records(user_id: int, record_type: str = "all", days: int 
             "records": {}
         }
         
-        # 计算时间范围（使用UTC时区以匹配MongoDB记录）
-        end_date = datetime.now(timezone.utc)
+        # 计算时间范围（使用本地时间，与MongoDB记录一致）
+        end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
         
         # 精简血糖记录字段的辅助函数

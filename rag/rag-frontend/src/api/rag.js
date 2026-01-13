@@ -87,4 +87,9 @@ export const deleteKnowledgeItem = (itemId) => {
   return api.delete(`/knowledge/items/${itemId}`)
 }
 
+// 批量删除知识条目
+export const batchDeleteKnowledgeItems = (itemIds) => {
+  return api.post('/knowledge/items/batch-delete', { item_ids: itemIds })
+}
+
 export default api

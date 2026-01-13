@@ -33,14 +33,33 @@
         <div class="card-title">
           <el-icon><List /></el-icon>
           知识条目
+          <span v-if="selectedIds.length > 0" class="selection-info">
+            （已选 {{ selectedIds.length }} 项）
+          </span>
         </div>
-        <el-button type="primary" size="small" @click="showAddDialog">
-          <el-icon><Plus /></el-icon> 添加条目
-        </el-button>
+        <div class="header-actions">
+          <el-button 
+            v-if="selectedIds.length > 0" 
+            type="danger" 
+            size="small" 
+            @click="handleBatchDelete"
+          >
+            <el-icon><Delete /></el-icon> 批量删除 ({{ selectedIds.length }})
+          </el-button>
+          <el-button type="primary" size="small" @click="showAddDialog">
+            <el-icon><Plus /></el-icon> 添加条目
+          </el-button>
+        </div>
       </div>
 
       <!-- 条目列表 -->
-      <el-table :data="items" v-loading="loading" style="width: 100%">
+      <el-table 
+        :data="items" 
+        v-loading="loading" 
+        style="width: 100%"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="50" />
         <el-table-column prop="chunk_index" label="#" width="60" />
         <el-table-column prop="content" label="内容" min-width="300">
           <template #default="{ row }">
@@ -136,6 +155,9 @@ const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 
+// 批量选择
+const selectedIds = ref([])
+
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const currentItemId = ref(null)
@@ -164,6 +186,7 @@ const fetchDocInfo = async () => {
 const fetchItems = async () => {
   try {
     loading.value = true
+    selectedIds.value = [] // 清空选择
     const { data } = await ragApi.getDocumentItems(docId, page.value, pageSize.value)
     if (data.success) {
       items.value = data.items
@@ -179,6 +202,11 @@ const fetchItems = async () => {
 const truncate = (text, len) => {
   if (!text) return ''
   return text.length > len ? text.slice(0, len) + '...' : text
+}
+
+// 处理选择变化
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id)
 }
 
 const showAddDialog = () => {
@@ -236,6 +264,39 @@ const handleDelete = async (row) => {
   }
 }
 
+// 批量删除
+const handleBatchDelete = async () => {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请先选择要删除的条目')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定删除选中的 ${selectedIds.value.length} 个知识条目吗？此操作不可恢复！`,
+      '批量删除确认',
+      { type: 'warning' }
+    )
+    
+    loading.value = true
+    const { data } = await ragApi.batchDeleteKnowledgeItems(selectedIds.value)
+    
+    if (data.success) {
+      ElMessage.success(`成功删除 ${data.deleted_count} 个知识条目`)
+      selectedIds.value = []
+      fetchItems()
+    } else {
+      ElMessage.error(data.error || '批量删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('批量删除失败')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleDeleteDoc = async () => {
   try {
     await ElMessageBox.confirm(
@@ -266,6 +327,18 @@ const handleDeleteDoc = async () => {
   margin: 0;
   font-size: 18px;
   color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.selection-info {
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: normal;
+  margin-left: 8px;
 }
 
 .content-cell {

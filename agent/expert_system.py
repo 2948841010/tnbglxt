@@ -158,6 +158,66 @@ class Expert(ABC):
         # 如果不是嵌套格式，直接返回data
         logger.debug(f"_extract_mcp_data: 使用默认data字段，keys={list(data.keys()) if isinstance(data, dict) else 'N/A'}")
         return data
+    
+    def _filter_search_results(self, data: Any) -> Any:
+        """
+        过滤搜索结果，只保留关键字段，减少上下文占用
+        
+        对于RAG搜索结果，只保留：rank, answer, similarity_score, source
+        移除：question(通常为空), category, medical_entities, source_info的冗余字段
+        """
+        if not isinstance(data, dict):
+            return data
+        
+        # 处理search_results数组
+        if "search_results" in data:
+            filtered_results = []
+            for item in data.get("search_results", []):
+                filtered_item = {
+                    "rank": item.get("rank"),
+                    "answer": item.get("answer"),
+                    "score": round(item.get("similarity_score", 0), 2),
+                    "source": item.get("source_info", {}).get("source", "") if isinstance(item.get("source_info"), dict) else ""
+                }
+                filtered_results.append(filtered_item)
+            
+            # 返回精简后的结果
+            return {
+                "total": data.get("search_summary", {}).get("total_found", len(filtered_results)),
+                "results": filtered_results
+            }
+        
+        # 处理health_records
+        if "health_records" in data:
+            filtered_records = {}
+            for record_type, records in data.get("health_records", {}).items():
+                if isinstance(records, list):
+                    # 只保留关键字段
+                    filtered_list = []
+                    for r in records:
+                        if record_type == "glucose":
+                            filtered_list.append({
+                                "value": r.get("value"),
+                                "measureType": r.get("measureType"),
+                                "time": r.get("measureTime", r.get("measure_time", ""))
+                            })
+                        elif record_type == "pressure":
+                            filtered_list.append({
+                                "systolic": r.get("systolic"),
+                                "diastolic": r.get("diastolic"),
+                                "time": r.get("measureTime", r.get("measure_time", ""))
+                            })
+                        elif record_type == "weight":
+                            filtered_list.append({
+                                "weight": r.get("weight"),
+                                "time": r.get("measureTime", r.get("measure_time", ""))
+                            })
+                        else:
+                            filtered_list.append(r)
+                    filtered_records[record_type] = filtered_list
+            return {"health_records": filtered_records}
+        
+        return data
 
 
 class DiagnosisExpert(Expert):
@@ -419,9 +479,40 @@ class KnowledgeExpert(Expert):
         """检索知识库"""
         try:
             user_question = context.get("user_question", "")
+            assigned_task = context.get("assigned_task", "")
+            
+            # 先用AI提取搜索关键词，而不是直接用整个问题
+            extract_messages = [
+                {"role": "system", "content": """你是关键词提取专家。从用户问题中提取用于医学知识库搜索的关键词。
+
+规则：
+1. 只提取与医学/健康相关的核心词汇
+2. 去掉无关的口语化表达（如"帮我查一下"、"我想问"等）
+3. 返回简洁的搜索词，用空格分隔
+4. 如果有多个主题，只提取最主要的一个
+
+示例：
+- 输入："刚刚消息没看到，你再回答一下：二型糖尿病的营养与健康管理是什么"
+- 输出：二型糖尿病 营养 健康管理
+
+- 输入："我想问一下糖尿病患者能吃什么水果"
+- 输出：糖尿病 水果 饮食
+
+只返回关键词，不要其他内容。"""},
+                {"role": "user", "content": f"用户问题：{user_question}\n任务描述：{assigned_task}"}
+            ]
+            
+            keyword_response = await self.deepseek_client.chat_completion(
+                messages=extract_messages,
+                temperature=0.1,
+                max_tokens=50
+            )
+            
+            search_query = keyword_response["message"]["content"].strip()
+            logger.info(f"📚 知识专家提取搜索关键词: {search_query}")
             
             # 检索知识库
-            knowledge_query_params = {"query": user_question, "top_k": 5}
+            knowledge_query_params = {"query": search_query, "top_k": 5}
             knowledge_response = await self.mcp_client.call_tool(
                 "search_diabetes_knowledge",
                 knowledge_query_params
@@ -430,27 +521,26 @@ class KnowledgeExpert(Expert):
             # 提取实际数据 - 使用辅助方法处理嵌套JSON
             knowledge_results = self._extract_mcp_data(knowledge_response)
             
-            # 如果返回的是search_results格式，提取结果数组
-            if isinstance(knowledge_results, dict) and "search_results" in knowledge_results:
-                knowledge_results = knowledge_results.get("search_results", [])
+            # 过滤搜索结果，只保留关键字段
+            filtered_results = self._filter_search_results(knowledge_results)
             
-            # 记录MCP调用详情
+            # 记录MCP调用详情（使用过滤后的数据）
             mcp_calls = [
                 {
                     "tool": "search_diabetes_knowledge",
                     "input": knowledge_query_params,
-                    "output": knowledge_response
+                    "output": filtered_results  # 使用过滤后的精简数据
                 }
             ]
             
-            # 使用AI整理知识
+            # 使用AI整理知识（也使用过滤后的数据）
             messages = [
                 {"role": "system", "content": self.get_system_prompt()},
                 {"role": "user", "content": f"""
 用户问题：{user_question}
 
 检索到的知识库内容：
-{json.dumps(knowledge_results, ensure_ascii=False, indent=2)}
+{json.dumps(filtered_results, ensure_ascii=False, indent=2)}
 
 请基于这些知识：
 1. 提供准确的医学信息
@@ -468,7 +558,7 @@ class KnowledgeExpert(Expert):
             return {
                 "expert": self.name,
                 "success": True,
-                "knowledge": knowledge_results,  # 传递提取后的实际数据
+                "knowledge": filtered_results,  # 传递过滤后的精简数据
                 "explanation": response["message"]["content"],
                 "confidence": "high",
                 "mcp_calls": mcp_calls  # 添加MCP调用详情
@@ -523,17 +613,19 @@ class DoctorExpert(Expert):
                 logger.info(f"👨‍⚕️ 医生推荐专家：从doctors字段提取，数量={len(doctors)}")
             elif isinstance(doctors_data, list):
                 doctors = doctors_data
+                doctors_data = {"doctors": doctors}  # 标准化格式
                 logger.info(f"👨‍⚕️ 医生推荐专家：数据本身是列表，数量={len(doctors)}")
             else:
                 doctors = []
+                doctors_data = {"doctors": []}
                 logger.warning(f"👨‍⚕️ 医生推荐专家：无法识别医生数据格式，类型={type(doctors_data)}")
             
-            # 记录MCP调用详情
+            # 记录MCP调用详情（使用提取后的数据，避免重复）
             mcp_calls = [
                 {
                     "tool": "query_doctor_list",
                     "input": doctor_query_params,
-                    "output": doctors_response
+                    "output": doctors_data  # 使用提取后的数据
                 }
             ]
             
@@ -925,19 +1017,20 @@ class DataRecordExpert(Expert):
                             query_params
                         )
                         
-                        # 记录MCP调用
-                        mcp_calls.append({
-                            "tool": "query_user_health_records",
-                            "input": query_params,
-                            "output": health_records,
-                            "success": health_records.get("success", False)
-                        })
-                        
                         # 提取该类型的最新记录
                         latest_value = None
                         
                         # 从health_records中提取数据
                         hr_data = self._extract_mcp_data(health_records)
+                        
+                        # 记录MCP调用（使用提取后的数据）
+                        mcp_calls.append({
+                            "tool": "query_user_health_records",
+                            "input": query_params,
+                            "output": hr_data,  # 使用提取后的数据
+                            "success": health_records.get("success", False)
+                        })
+                        
                         if isinstance(hr_data, dict) and "health_records" in hr_data:
                             type_records = hr_data["health_records"].get(record_type, [])
                             if type_records and len(type_records) > 0:
@@ -1211,20 +1304,25 @@ class SynthesisExpert(Expert):
         return """你是综合专家，负责整合各个专家的分析结果并生成最终回复。
 
 核心职责：
-1. 检查问诊专家的评估结果
-2. 如果信息不足，友好地向用户提出问诊专家建议的问题
-3. 如果信息充足，整合所有专家意见给出完整建议
+1. **整合已有信息**：认真阅读每个专家的分析结果，提取关键信息
+2. 如果数据专家已经查到了用户的健康数据，直接使用这些数据进行分析
+3. 如果知识专家已经检索到了相关知识，结合用户数据给出个性化建议
 4. 避免重复内容，提供简洁有价值的回复
 
+**重要原则**：
+- **不要说"无法获取数据"**：如果数据专家已经查到数据，你必须使用这些数据
+- **不要重复问用户要数据**：如果专家已经查到了血糖、血压等数据，直接分析
+- **整合而非重复**：不要简单复述各专家的内容，要综合分析
+- **个性化建议**：结合用户的实际数据和医学知识，给出针对性建议
+
 回复策略：
-- **信息不足时**：以友好的方式提出问题，解释为什么需要这些信息
-- **信息充足时**：整合诊断专家、数据专家等的分析，给出综合建议
-- **避免说教**：不要重复"我无法诊断"等免责声明（其他专家已说明）
+- **数据已有时**：直接分析用户的健康数据，结合知识给出建议
+- **数据不足时**：明确说明缺少什么数据，友好地请用户补充
 - **重点突出**：聚焦用户最关心的问题
 
 输出要求：
 1. 简洁明了，避免冗长重复
-2. 如果需要提问，一次不超过3个关键问题
+2. 如果有数据，先总结数据情况，再给建议
 3. 使用Markdown格式，清晰分段"""
     
     async def process(self, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -1255,9 +1353,36 @@ class SynthesisExpert(Expert):
                             "reason": result.get("reason", "")
                         })
                     else:
+                        # 获取专家分析内容 - 支持多种字段名
+                        # ReAct专家使用report字段，普通专家使用analysis/explanation/recommendation
+                        content = (
+                            result.get("report") or 
+                            result.get("analysis") or 
+                            result.get("explanation") or 
+                            result.get("recommendation") or
+                            result.get("completion_report", "")
+                        )
+                        
+                        # 如果是ReAct专家，还可以提取steps中的关键发现
+                        if result.get("react_mode") and result.get("steps"):
+                            steps_info = []
+                            for step in result.get("steps", []):
+                                if step.get("observation"):
+                                    # 提取观察到的数据摘要
+                                    obs = step.get("observation")
+                                    if isinstance(obs, dict):
+                                        # 健康数据
+                                        if "health_records" in obs:
+                                            records = obs.get("health_records", {})
+                                            for rec_type, rec_list in records.items():
+                                                if rec_list:
+                                                    steps_info.append(f"{rec_type}数据: {len(rec_list)}条")
+                            if steps_info:
+                                content = f"{content}\n数据概况: {', '.join(steps_info)}"
+                        
                         results_summary.append({
                             "expert": expert_name,
-                            "content": result.get("analysis") or result.get("explanation") or result.get("recommendation", "")
+                            "content": content
                         })
             
             # 简化历史记录（只保留最近5轮对话的角色和内容）
@@ -1299,17 +1424,20 @@ class SynthesisExpert(Expert):
 历史对话记录：
 {json.dumps(simplified_history, ensure_ascii=False, indent=2) if simplified_history else "无历史对话"}
 
-各专家的分析结果：
+**各专家的分析结果（请仔细阅读并整合）**：
 {json.dumps(results_summary, ensure_ascii=False, indent=2)}
 
-重要提示：请充分结合历史对话记录理解用户的问题和背景。如果用户提到"刚刚"、"之前"等时间词，请参考历史记录。
+**重要提示**：
+1. 上面的专家分析结果中已经包含了用户的健康数据和医学知识
+2. 如果数据专家已经查到了血糖、血压、体重等数据，你必须直接使用这些数据
+3. 不要说"无法获取数据"或"需要您提供数据"，因为数据专家已经查到了
+4. 结合知识专家的医学知识和数据专家的用户数据，给出个性化建议
 
 请整合以上所有专家的意见，生成简洁有价值的回复：
-1. 结合历史对话，理解用户的完整意图
-2. 避免重复各专家已说的内容
-3. 聚焦用户最关心的问题
-4. 给出清晰的建议和下一步行动
-5. 使用Markdown格式，简洁明了
+1. 先总结用户的健康数据情况（如果有）
+2. 结合医学知识分析数据是否正常
+3. 给出针对性的建议
+4. 使用Markdown格式，简洁明了
 """
             
             # 使用AI整合

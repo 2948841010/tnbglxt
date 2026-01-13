@@ -727,7 +727,19 @@ public class HealthRecordServiceImpl implements HealthRecordService {
      */
     private void updateBloodGlucoseStatistics(BloodGlucoseRecord record) {
         List<BloodGlucoseRecord.GlucoseEntry> entries = record.getRecords();
+        
+        // 如果记录为空，清空统计数据
         if (entries == null || entries.isEmpty()) {
+            BloodGlucoseRecord.GlucoseStatistics emptyStats = new BloodGlucoseRecord.GlucoseStatistics();
+            emptyStats.setAvgValue(null);
+            emptyStats.setMaxValue(null);
+            emptyStats.setMinValue(null);
+            emptyStats.setTotalCount(0);
+            emptyStats.setNormalCount(0);
+            emptyStats.setHighCount(0);
+            emptyStats.setLowCount(0);
+            emptyStats.setLastUpdateTime(LocalDateTime.now());
+            record.setStatistics(emptyStats);
             return;
         }
 
@@ -789,7 +801,21 @@ public class HealthRecordServiceImpl implements HealthRecordService {
      */
     private void updateBloodPressureStatistics(BloodPressureRecord record) {
         List<BloodPressureRecord.PressureEntry> entries = record.getRecords();
+        
+        // 如果记录为空，清空统计数据
         if (entries == null || entries.isEmpty()) {
+            BloodPressureRecord.PressureStatistics emptyStats = new BloodPressureRecord.PressureStatistics();
+            emptyStats.setAvgSystolic(null);
+            emptyStats.setAvgDiastolic(null);
+            emptyStats.setAvgHeartRate(null);
+            emptyStats.setMaxSystolic(null);
+            emptyStats.setMinSystolic(null);
+            emptyStats.setTotalCount(0);
+            emptyStats.setNormalCount(0);
+            emptyStats.setHighCount(0);
+            emptyStats.setLowCount(0);
+            emptyStats.setLastUpdateTime(LocalDateTime.now());
+            record.setStatistics(emptyStats);
             return;
         }
 
@@ -1165,7 +1191,20 @@ public class HealthRecordServiceImpl implements HealthRecordService {
      */
     private void updateWeightStatistics(WeightRecord record) {
         List<WeightRecord.WeightEntry> entries = record.getRecords();
+        
+        // 如果记录为空，清空统计数据
         if (entries == null || entries.isEmpty()) {
+            WeightRecord.WeightStatistics emptyStats = new WeightRecord.WeightStatistics();
+            emptyStats.setAvgWeight(null);
+            emptyStats.setMaxWeight(null);
+            emptyStats.setMinWeight(null);
+            emptyStats.setCurrentWeight(null);
+            emptyStats.setCurrentBmi(null);
+            emptyStats.setTotalCount(0);
+            emptyStats.setWeightChange7Days(null);
+            emptyStats.setWeightChange30Days(null);
+            emptyStats.setLastUpdateTime(LocalDateTime.now());
+            record.setStatistics(emptyStats);
             return;
         }
 

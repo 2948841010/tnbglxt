@@ -463,12 +463,18 @@ class ReActExpert(ABC):
         # 调用MCP工具
         result = await self.mcp_client.call_tool(tool_name, params)
         
+        # 提取实际数据，避免存储重复的嵌套结构
+        extracted_output = self._extract_mcp_data(result) if hasattr(self, '_extract_mcp_data') else result
+        
+        # 过滤搜索结果，只保留关键字段
+        filtered_output = self._filter_search_results(extracted_output) if hasattr(self, '_filter_search_results') else extracted_output
+        
         # 记录调用信息（如果在ReAct循环中）
         if self._current_react_loop:
             self._current_react_loop.mcp_calls.append({
                 "tool": tool_name,
                 "input": params,
-                "output": result
+                "output": filtered_output  # 使用过滤后的精简数据
             })
         
         return result
@@ -575,6 +581,60 @@ class ReActExpert(ABC):
                                 return json.loads(text_str)
                             except:
                                 pass
+        
+        return data
+    
+    def _filter_search_results(self, data: Any) -> Any:
+        """
+        过滤搜索结果，只保留关键字段，减少上下文占用
+        """
+        if not isinstance(data, dict):
+            return data
+        
+        # 处理search_results数组（RAG知识库搜索）
+        if "search_results" in data:
+            filtered_results = []
+            for item in data.get("search_results", []):
+                filtered_item = {
+                    "rank": item.get("rank"),
+                    "answer": item.get("answer"),
+                    "score": round(item.get("similarity_score", 0), 2),
+                    "source": item.get("source_info", {}).get("source", "") if isinstance(item.get("source_info"), dict) else ""
+                }
+                filtered_results.append(filtered_item)
+            return {
+                "total": data.get("search_summary", {}).get("total_found", len(filtered_results)),
+                "results": filtered_results
+            }
+        
+        # 处理health_records（健康数据查询）
+        if "health_records" in data:
+            filtered_records = {}
+            for record_type, records in data.get("health_records", {}).items():
+                if isinstance(records, list):
+                    filtered_list = []
+                    for r in records:
+                        if record_type == "glucose":
+                            filtered_list.append({
+                                "value": r.get("value"),
+                                "measureType": r.get("measureType"),
+                                "time": r.get("measureTime", r.get("measure_time", ""))
+                            })
+                        elif record_type == "pressure":
+                            filtered_list.append({
+                                "systolic": r.get("systolic"),
+                                "diastolic": r.get("diastolic"),
+                                "time": r.get("measureTime", r.get("measure_time", ""))
+                            })
+                        elif record_type == "weight":
+                            filtered_list.append({
+                                "weight": r.get("weight"),
+                                "time": r.get("measureTime", r.get("measure_time", ""))
+                            })
+                        else:
+                            filtered_list.append(r)
+                    filtered_records[record_type] = filtered_list
+            return {"health_records": filtered_records}
         
         return data
 

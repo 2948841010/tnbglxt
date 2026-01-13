@@ -998,13 +998,13 @@ onBeforeUnmount(() => {
   position: relative;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 100px); /* 减去MainLayout头部高度60px和page-content的padding 40px */
-  background: #f5f7fa;
-  margin: -20px; /* 抵消page-content的padding */
-  min-height: 500px; /* 确保最小高度 */
+  height: calc(100vh - 100px);
+  background: #F0FDFA;
+  margin: -20px;
+  min-height: 500px;
 }
 
-/* 聊天头部 */
+/* 聊天头部 - Healthcare风格 */
 .chat-header {
   position: absolute;
   top: 0;
@@ -1015,9 +1015,9 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: white;
-  border-bottom: 1px solid #e1e5e9;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, #ECFEFF 0%, #CFFAFE 100%);
+  border-bottom: 1px solid #A5F3FC;
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.1);
   height: 68px;
   box-sizing: border-box;
 }
@@ -1029,7 +1029,11 @@ onBeforeUnmount(() => {
 }
 
 .back-btn {
-  color: #64748b;
+  color: #0891B2;
+}
+
+.back-btn:hover {
+  color: #0E7490;
 }
 
 .doctor-info {
@@ -1041,12 +1045,12 @@ onBeforeUnmount(() => {
 .doctor-name {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: #164E63;
 }
 
 .doctor-desc {
   font-size: 12px;
-  color: #64748b;
+  color: #0891B2;
 }
 
 /* 聊天内容区域 */
@@ -1054,8 +1058,9 @@ onBeforeUnmount(() => {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  padding-bottom: 80px; /* 为底部输入框留出空间 */
-  margin-top: 68px; /* 头部高度 */
+  padding-bottom: 80px;
+  margin-top: 68px;
+  background: #F0FDFA;
 }
 
 .chat-messages {
@@ -1074,16 +1079,16 @@ onBeforeUnmount(() => {
 }
 
 .user-message .message-bubble {
-  background: #1890ff;
+  background: linear-gradient(135deg, #0891B2 0%, #22D3EE 100%);
   color: white;
   border-radius: 16px 16px 4px 16px;
 }
 
 .doctor-message .message-bubble {
   background: white;
-  color: #333;
+  color: #164E63;
   border-radius: 16px 16px 16px 4px;
-  border: 1px solid #e1e5e9;
+  border: 1px solid #A5F3FC;
 }
 
 .message-bubble {
@@ -1098,7 +1103,7 @@ onBeforeUnmount(() => {
   gap: 4px;
   margin-top: 4px;
   font-size: 12px;
-  color: #94a3b8;
+  color: #67E8F9;
 }
 
 .user-message .message-info {
@@ -1106,11 +1111,11 @@ onBeforeUnmount(() => {
 }
 
 .message-status .read-icon {
-  color: #10b981;
+  color: #059669;
 }
 
 .message-status .sent-icon {
-  color: #64748b;
+  color: #67E8F9;
 }
 
 /* 空状态 */
@@ -1120,12 +1125,13 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #94a3b8;
+  color: #67E8F9;
 }
 
 .empty-icon {
   font-size: 48px;
   margin-bottom: 12px;
+  color: #A5F3FC;
 }
 
 /* 输入区域 */
@@ -1136,9 +1142,9 @@ onBeforeUnmount(() => {
   right: 0;
   z-index: 100;
   background: white;
-  border-top: 1px solid #e1e5e9;
+  border-top: 1px solid #A5F3FC;
   padding: 12px 16px;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2px 8px rgba(8, 145, 178, 0.1);
   min-height: 60px;
   box-sizing: border-box;
 }
@@ -1162,42 +1168,71 @@ onBeforeUnmount(() => {
 }
 
 .image-upload-button {
-  /* 图片上传按钮样式继承自upload-button */
+  background: #ECFEFF;
+  border-color: #A5F3FC;
+  color: #0891B2;
+}
+
+.image-upload-button:hover {
+  background: #CFFAFE;
+  border-color: #22D3EE;
 }
 
 .file-upload-button {
-  /* 文件上传按钮样式继承自upload-button */
+  background: #FEF3C7;
+  border-color: #F59E0B;
+  color: #D97706;
+}
+
+.file-upload-button:hover {
+  background: #FDE68A;
+  border-color: #D97706;
 }
 
 .message-input {
   flex: 1;
-  min-width: 0; /* 确保可以收缩 */
+  min-width: 0;
+}
+
+.message-input :deep(.el-input__wrapper) {
+  border-color: #A5F3FC;
+}
+
+.message-input :deep(.el-input__wrapper:focus-within) {
+  border-color: #0891B2;
+  box-shadow: 0 0 0 1px #0891B2;
 }
 
 .send-button {
   flex-shrink: 0;
   min-width: 60px;
   height: 36px;
+  background: linear-gradient(135deg, #0891B2 0%, #22D3EE 100%);
+  border: none;
 }
 
-/* 🖼️ 图片上传进度 */
+.send-button:hover {
+  background: linear-gradient(135deg, #0E7490 0%, #06B6D4 100%);
+}
+
+/* 图片上传进度 */
 .upload-progress-container {
   margin-top: 8px;
   padding: 8px 12px;
-  background: #f8f9fa;
+  background: #ECFEFF;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #A5F3FC;
 }
 
 .progress-text {
   font-size: 12px;
-  color: #6c757d;
+  color: #0891B2;
   margin-left: 8px;
 }
 
-/* 🖼️ 图片消息样式 */
+/* 图片消息样式 */
 .image-content {
-  padding: 0; /* 移除内边距，让图片紧贴气泡边缘 */
+  padding: 0;
 }
 
 .chat-image {
@@ -1210,7 +1245,7 @@ onBeforeUnmount(() => {
 
 .chat-image:hover {
   transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.2);
 }
 
 .image-error {
@@ -1219,8 +1254,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  color: #909399;
-  background: #f5f7fa;
+  color: #67E8F9;
+  background: #ECFEFF;
   border-radius: 8px;
   font-size: 12px;
 }
@@ -1230,7 +1265,7 @@ onBeforeUnmount(() => {
   margin-bottom: 4px;
 }
 
-/* 🔥 文件消息样式 */
+/* 文件消息样式 */
 .file-content {
   padding: 12px;
   min-width: 200px;
@@ -1248,20 +1283,20 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #f0f2f5;
+  background: #ECFEFF;
   border-radius: 8px;
-  color: #606266;
+  color: #0891B2;
   font-size: 20px;
 }
 
 .file-details {
   flex: 1;
-  min-width: 0; /* 允许文本溢出省略 */
+  min-width: 0;
 }
 
 .file-name {
   font-weight: 500;
-  color: #303133;
+  color: #164E63;
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -1271,11 +1306,18 @@ onBeforeUnmount(() => {
 
 .file-size {
   font-size: 12px;
-  color: #909399;
+  color: #67E8F9;
 }
 
 .download-button {
   flex-shrink: 0;
+  background: #0891B2;
+  border-color: #0891B2;
+}
+
+.download-button:hover {
+  background: #0E7490;
+  border-color: #0E7490;
 }
 
 /* 用户发送的文件消息 */
@@ -1299,9 +1341,9 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   z-index: 100;
-  background: white;
-  border-top: 1px solid #e1e5e9;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, #ECFEFF 0%, #CFFAFE 100%);
+  border-top: 1px solid #A5F3FC;
+  box-shadow: 0 -2px 8px rgba(8, 145, 178, 0.1);
   padding: 12px 16px;
   min-height: 60px;
   box-sizing: border-box;
@@ -1314,16 +1356,26 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 12px;
+  width: 100%;
 }
 
 .ended-icon {
   font-size: 20px;
-  color: #10b981;
+  color: #059669;
 }
 
 .ended-text {
-  color: #64748b;
+  color: #164E63;
   font-size: 14px;
+}
+
+.ended-content .el-button {
+  background: linear-gradient(135deg, #0891B2 0%, #22D3EE 100%);
+  border: none;
+}
+
+.ended-content .el-button:hover {
+  background: linear-gradient(135deg, #0E7490 0%, #06B6D4 100%);
 }
 
 /* 图片和文件内容样式 */
@@ -1340,8 +1392,8 @@ onBeforeUnmount(() => {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .consultation-chat-page {
-    height: calc(100vh - 92px); /* 移动端调整：头部60px + padding 32px */
-    margin: -16px; /* 抵消移动端的page-content padding */
+    height: calc(100vh - 92px);
+    margin: -16px;
   }
   
   .chat-header {
@@ -1351,8 +1403,8 @@ onBeforeUnmount(() => {
   
   .chat-body {
     padding: 16px;
-    padding-bottom: 72px; /* 移动端为底部输入框留出空间 */
-    margin-top: 60px; /* 移动端头部高度 */
+    padding-bottom: 72px;
+    margin-top: 60px;
   }
   
   .chat-footer {
@@ -1385,6 +1437,11 @@ onBeforeUnmount(() => {
   
   .message-item {
     max-width: 85%;
+  }
+  
+  .upload-button {
+    width: 32px;
+    height: 32px;
   }
 }
 </style> 

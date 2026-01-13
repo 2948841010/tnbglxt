@@ -87,6 +87,11 @@ class NewSessionResponse(BaseModel):
     message: Optional[str] = None
     error: Optional[str] = None
 
+class DeleteSessionResponse(BaseModel):
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+
 @app.on_event("startup")
 async def startup_event():
     """应用启动事件"""
@@ -300,6 +305,44 @@ async def create_new_session(current_user: Dict[str, Any] = Security(get_current
         raise
     except Exception as e:
         logger.error(f"创建新会话失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/chat/sessions/{session_id}", response_model=DeleteSessionResponse)
+async def delete_chat_session(session_id: str, current_user: Dict[str, Any] = Security(get_current_user)):
+    """删除指定会话（需要JWT认证）"""
+    try:
+        user_id = current_user["user_id"]
+        
+        # 验证会话是否存在且属于当前用户
+        session = await agent_service.session_manager.mongodb.get_session(user_id, session_id)
+        
+        if not session:
+            raise HTTPException(status_code=404, detail="会话不存在或无权访问")
+        
+        # 删除会话
+        delete_success = await agent_service.session_manager.mongodb.delete_session(session_id, user_id)
+        
+        if delete_success:
+            # 如果删除的是当前会话，清除内存映射
+            if agent_service.session_manager.user_session_map.get(user_id) == session_id:
+                agent_service.session_manager.user_session_map.pop(user_id, None)
+            
+            # 清除Redis缓存
+            agent_service.session_manager._clear_session_cache(session_id)
+            
+            logger.info(f"✅ 用户 {user_id} 删除会话: {session_id}")
+            
+            return DeleteSessionResponse(
+                success=True,
+                message="会话已删除"
+            )
+        else:
+            raise HTTPException(status_code=500, detail="删除会话失败")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"删除会话失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/tools")

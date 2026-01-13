@@ -20,14 +20,25 @@
                   :command="`switch:${session.sessionId}`"
                 >
                   <div class="session-item">
-                    <div class="session-info">
-                      <div class="session-preview">
+                    <div class="session-info" @click.stop>
+                      <div class="session-preview" @click="handleSessionCommand(`switch:${session.sessionId}`)">
                         {{ session.lastMessage?.content || '新对话' }}
                       </div>
                       <div class="session-meta">
                         <span class="session-time">{{ formatSessionTime(session.updateTime) }}</span>
                         <span class="session-count">{{ session.messageCount }}条消息</span>
                       </div>
+                    </div>
+                    <div class="session-actions">
+                      <el-button 
+                        text 
+                        circle 
+                        size="small" 
+                        class="session-delete-btn"
+                        @click.stop="handleSessionCommand(`delete:${session.sessionId}`)"
+                      >
+                        <el-icon :size="14"><Delete /></el-icon>
+                      </el-button>
                     </div>
                   </div>
                 </el-dropdown-item>
@@ -148,8 +159,8 @@
                   :class="{ 'is-active': session.sessionId === currentSessionId }"
                 >
                   <div class="session-item">
-                    <div class="session-info">
-                      <div class="session-preview">
+                    <div class="session-info" @click.stop>
+                      <div class="session-preview" @click="handleSessionCommand(`switch:${session.sessionId}`)">
                         {{ session.lastMessage?.content || '新对话' }}
                       </div>
                       <div class="session-meta">
@@ -157,9 +168,20 @@
                         <span class="session-count">{{ session.messageCount }}条消息</span>
                       </div>
                     </div>
-                    <el-icon v-if="session.sessionId === currentSessionId" class="session-check">
-                      <Check />
-                    </el-icon>
+                    <div class="session-actions">
+                      <el-icon v-if="session.sessionId === currentSessionId" class="session-check">
+                        <Check />
+                      </el-icon>
+                      <el-button 
+                        text 
+                        circle 
+                        size="small" 
+                        class="session-delete-btn"
+                        @click.stop="handleSessionCommand(`delete:${session.sessionId}`)"
+                      >
+                        <el-icon :size="14"><Delete /></el-icon>
+                      </el-button>
+                    </div>
                   </div>
                 </el-dropdown-item>
               </el-dropdown-menu>
@@ -631,7 +653,7 @@
 
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, computed, defineComponent } from 'vue'
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElMessage, ElLoading, ElMessageBox } from 'element-plus'
 import {
   ChatDotSquare,
   User,
@@ -653,7 +675,8 @@ import {
   Plus,
   Check,
   Refresh,
-  Clock
+  Clock,
+  Delete
 } from '@element-plus/icons-vue'
 import { agentAPI } from '@/api/agent'
 import { useUserStore } from '@/stores/user'
@@ -1417,9 +1440,10 @@ const getMcpCallSummary = (mcpCall) => {
         return '添加失败'
         
       case 'search_diabetes_knowledge':
-        if (actualData.search_results || actualData.knowledge) {
-          const results = actualData.search_results || actualData.knowledge || []
-          return `找到 ${results.length} 条相关知识`
+        // 支持新精简格式 {total, results} 和旧格式 {search_results, search_summary}
+        const searchResults = actualData.results || actualData.search_results || actualData.knowledge || []
+        if (searchResults.length > 0) {
+          return `返回 ${searchResults.length} 条知识`
         }
         return '知识检索完成'
         
@@ -1448,8 +1472,17 @@ const extractMcpData = (mcpResponse) => {
     return mcpResponse
   }
   
+  // 如果数据已经是提取后的格式（没有data字段，直接有health_records/results等），直接返回
+  if (mcpResponse.health_records || mcpResponse.results || mcpResponse.total !== undefined || mcpResponse.doctors) {
+    return mcpResponse
+  }
+  
   // 第一层：提取data字段
-  let data = mcpResponse.data || {}
+  let data = mcpResponse.data
+  if (!data) {
+    // 没有data字段，可能已经是提取后的数据
+    return mcpResponse
+  }
   
   // 如果data是字典且包含structuredContent或content，说明是嵌套格式
   if (typeof data === 'object' && data !== null) {
@@ -1499,7 +1532,7 @@ const formatMcpOutputDisplay = (tool, output) => {
     // 根据不同工具类型返回不同格式
     switch (tool) {
       case 'query_user_health_records':
-        // 支持新格式 {user, records} 和旧格式 {user_info, health_records}
+        // 支持新格式 {health_records: {...}} 和旧格式 {user_info, health_records}
         const healthRecords = actualData.records || actualData.health_records
         if (healthRecords) {
           let summary = []
@@ -1527,10 +1560,15 @@ const formatMcpOutputDisplay = (tool, output) => {
         return parsedOutput.error || '添加失败'
         
       case 'search_diabetes_knowledge':
-        if (actualData.search_results || actualData.knowledge) {
-          const results = actualData.search_results || actualData.knowledge || []
-          const avgScore = actualData.avg_score || 0
-          return `检索到${results.length}条知识${avgScore > 0 ? `，平均相关度: ${avgScore.toFixed(2)}` : ''}`
+        // 支持新精简格式 {total, results} 和旧格式 {search_results, search_summary}
+        const searchResults = actualData.results || actualData.search_results || actualData.knowledge || []
+        const totalFound = actualData.total || actualData.search_summary?.total_found || searchResults.length
+        if (searchResults.length > 0 || totalFound > 0) {
+          // 如果返回数量和总数不同，显示"返回X条/共Y条"
+          if (totalFound > searchResults.length) {
+            return `检索到 ${searchResults.length} 条知识（共匹配 ${totalFound} 条）`
+          }
+          return `检索到 ${searchResults.length} 条相关知识`
         }
         return actualData.error || '检索失败'
         
@@ -1675,26 +1713,20 @@ const formatMcpOutput = (tool, output) => {
       break
       
     case 'search_diabetes_knowledge':
-      if (actualData.search_results) {
+      // 支持新精简格式 {total, results} 和旧格式 {search_results, search_summary}
+      const searchResults = actualData.results || actualData.search_results || []
+      const totalFound = actualData.total || actualData.search_summary?.total_found || searchResults.length
+      if (searchResults.length > 0 || totalFound > 0) {
         formatted.push({ 
           label: '检索结果', 
-          value: `${actualData.search_results.length} 条知识`,
+          value: `${searchResults.length} 条知识`,
           icon: '📚'
         })
-        if (actualData.search_summary) {
-          formatted.push({
-            label: '检索统计',
-            value: `找到 ${actualData.search_summary.total_found || 0} 条，返回 ${actualData.search_summary.returned_count || 0} 条`,
-            icon: '📈'
-          })
-          if (actualData.search_summary.cache_hit !== undefined) {
-            formatted.push({
-              label: '缓存',
-              value: actualData.search_summary.cache_hit ? '命中' : '未命中',
-              icon: '💾'
-            })
-          }
-        }
+        formatted.push({
+          label: '检索统计',
+          value: `共找到 ${totalFound} 条相关内容`,
+          icon: '📈'
+        })
       }
       break
       
@@ -2905,6 +2937,9 @@ const handleSessionCommand = async (command) => {
   } else if (command.startsWith('switch:')) {
     const sessionId = command.replace('switch:', '')
     await switchSession(sessionId)
+  } else if (command.startsWith('delete:')) {
+    const sessionId = command.replace('delete:', '')
+    await deleteSession(sessionId)
   }
 }
 
@@ -3045,6 +3080,52 @@ const switchSession = async (sessionId) => {
     ElMessage.error('切换会话失败：' + error.message)
   } finally {
     loading.close()
+  }
+}
+
+// 删除会话
+const deleteSession = async (sessionId) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这个会话吗？删除后无法恢复。',
+      '删除会话',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在删除会话...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+    
+    try {
+      const response = await agentAPI.deleteSession(sessionId)
+      if (response.success) {
+        // 如果删除的是当前会话，清空消息并重置
+        if (sessionId === currentSessionId.value) {
+          messages.value = []
+          currentSessionId.value = null
+        }
+        
+        // 重新加载会话列表
+        await loadSessions()
+        
+        ElMessage.success('会话已删除')
+      } else {
+        ElMessage.error(response.error || '删除会话失败')
+      }
+    } finally {
+      loading.close()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除会话失败:', error)
+      ElMessage.error('删除会话失败：' + error.message)
+    }
   }
 }
 
@@ -3253,6 +3334,11 @@ const formatSessionTime = (time) => {
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.session-preview:hover {
+  color: #667eea;
 }
 
 .session-meta {
@@ -3262,10 +3348,31 @@ const formatSessionTime = (time) => {
   color: #9ca3af;
 }
 
+.session-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
 .session-check {
   color: #667eea;
   font-size: 16px;
-  margin-left: 8px;
+}
+
+.session-delete-btn {
+  color: #9ca3af;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.session-item:hover .session-delete-btn {
+  opacity: 1;
+}
+
+.session-delete-btn:hover {
+  color: #ef4444 !important;
+  background-color: #fef2f2 !important;
 }
 
 .is-active {

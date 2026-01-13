@@ -209,5 +209,17 @@ export const agentAPI = {
       url: '/chat/sessions/new',
       method: 'post'
     })
+  },
+
+  /**
+   * 删除指定会话
+   * @param {string} sessionId - 会话ID
+   * @returns {Promise} API响应
+   */
+  deleteSession: (sessionId) => {
+    return agentRequest({
+      url: `/chat/sessions/${sessionId}`,
+      method: 'delete'
+    })
   }
 } 
