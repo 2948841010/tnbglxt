@@ -2,6 +2,12 @@
 lunwen/
 docs/
 
+# 配置文件（包含敏感信息）
+agent/config.py
+tlbglxt/src/main/resources/application.properties
+mcp/.env
+rag/.env
+
 # Python
 __pycache__/
 *.pyc

@@ -760,14 +760,21 @@ const HealthRecordsResult = defineComponent({
     
     const getRecordsSummary = () => {
       const data = parseToolResult(props.toolCall)
-      if (!data?.health_records) return '无记录'
+      // 支持新格式 {user, records} 和旧格式 {user_info, health_records}
+      const records = data?.records || data?.health_records
+      if (!records) return '无记录'
       
-      const types = Object.keys(data.health_records)
-      const total = Object.values(data.health_records).reduce((sum, records) => sum + records.length, 0)
+      const types = Object.keys(records)
+      const total = Object.values(records).reduce((sum, recs) => sum + recs.length, 0)
       return `${total}条记录 (${types.map(t => getRecordTypeName(t)).join('、')})`
     }
     
-    return { expanded, toggle, getRecordsSummary, getRecordTypeName, parseToolResult }
+    const getRecords = () => {
+      const data = parseToolResult(props.toolCall)
+      return data?.records || data?.health_records || {}
+    }
+    
+    return { expanded, toggle, getRecordsSummary, getRecordTypeName, parseToolResult, getRecords }
   },
   template: `
     <div class="interactive-tool-result health-records-result">
@@ -783,19 +790,19 @@ const HealthRecordsResult = defineComponent({
       </div>
       
       <div v-if="expanded" class="result-details">
-        <div v-if="parseToolResult(toolCall)?.health_records" class="records-grid">
-          <div v-for="(records, type) in parseToolResult(toolCall).health_records" :key="type" class="record-type-card">
+        <div v-if="Object.keys(getRecords()).length > 0" class="records-grid">
+          <div v-for="(records, type) in getRecords()" :key="type" class="record-type-card">
             <h4>{{ getRecordTypeName(type) }}</h4>
             <div class="record-stats">
               <span class="count">{{ records.length }}条</span>
               <span v-if="records.length > 0" class="latest">
-                最新: {{ new Date(records[0].measureTime).toLocaleDateString() }}
+                最新: {{ records[0].time || new Date(records[0].measureTime).toLocaleDateString() }}
               </span>
             </div>
             <div v-if="records.length > 0" class="latest-value">
               <span v-if="type === 'glucose'">{{ records[0].value }} mmol/L</span>
               <span v-else-if="type === 'pressure'">{{ records[0].systolic }}/{{ records[0].diastolic }} mmHg</span>
-              <span v-else-if="type === 'weight'">{{ records[0].value || records[0].weight }} kg</span>
+              <span v-else-if="type === 'weight'">{{ records[0].weight || records[0].value }} kg</span>
             </div>
           </div>
         </div>
@@ -1392,12 +1399,13 @@ const getMcpCallSummary = (mcpCall) => {
     // 根据不同工具类型返回不同摘要
     switch (mcpCall.tool) {
       case 'query_user_health_records':
-        if (actualData.health_records) {
-          const records = actualData.health_records
+        // 支持新格式 {user, records} 和旧格式 {user_info, health_records}
+        const healthRecords = actualData.records || actualData.health_records
+        if (healthRecords) {
           let total = 0
-          if (records.glucose) total += records.glucose.length
-          if (records.pressure) total += records.pressure.length
-          if (records.weight) total += records.weight.length
+          if (healthRecords.glucose) total += healthRecords.glucose.length
+          if (healthRecords.pressure) total += healthRecords.pressure.length
+          if (healthRecords.weight) total += healthRecords.weight.length
           return `查询到 ${total} 条记录`
         }
         return '查询完成'
@@ -1491,17 +1499,18 @@ const formatMcpOutputDisplay = (tool, output) => {
     // 根据不同工具类型返回不同格式
     switch (tool) {
       case 'query_user_health_records':
-        if (actualData.health_records) {
-          const records = actualData.health_records
+        // 支持新格式 {user, records} 和旧格式 {user_info, health_records}
+        const healthRecords = actualData.records || actualData.health_records
+        if (healthRecords) {
           let summary = []
-          if (records.glucose && records.glucose.length > 0) {
-            summary.push(`血糖记录: ${records.glucose.length}条`)
+          if (healthRecords.glucose && healthRecords.glucose.length > 0) {
+            summary.push(`血糖记录: ${healthRecords.glucose.length}条`)
           }
-          if (records.pressure && records.pressure.length > 0) {
-            summary.push(`血压记录: ${records.pressure.length}条`)
+          if (healthRecords.pressure && healthRecords.pressure.length > 0) {
+            summary.push(`血压记录: ${healthRecords.pressure.length}条`)
           }
-          if (records.weight && records.weight.length > 0) {
-            summary.push(`体重记录: ${records.weight.length}条`)
+          if (healthRecords.weight && healthRecords.weight.length > 0) {
+            summary.push(`体重记录: ${healthRecords.weight.length}条`)
           }
           return summary.length > 0 ? summary.join(', ') : '无数据'
         }
@@ -1629,33 +1638,31 @@ const formatMcpOutput = (tool, output) => {
   
   switch (tool) {
     case 'query_user_health_records':
-      if (actualData.user_info) {
+      // 支持新格式 {user, records} 和旧格式 {user_info, health_records}
+      const userName = actualData.user || (actualData.user_info?.real_name)
+      if (userName) {
         formatted.push({ 
-          label: '用户信息', 
-          value: `${actualData.user_info.real_name || 'N/A'} (ID: ${actualData.user_info.id})`,
+          label: '用户', 
+          value: userName,
           icon: '👤'
         })
       }
-      if (actualData.health_records) {
-        const records = actualData.health_records
+      const healthRecs = actualData.records || actualData.health_records
+      if (healthRecs) {
         let totalCount = 0
         const details = []
         
-        if (records.glucose?.length) {
-          totalCount += records.glucose.length
-          details.push(`血糖 ${records.glucose.length} 条`)
+        if (healthRecs.glucose?.length) {
+          totalCount += healthRecs.glucose.length
+          details.push(`血糖 ${healthRecs.glucose.length} 条`)
         }
-        if (records.pressure?.length) {
-          totalCount += records.pressure.length
-          details.push(`血压 ${records.pressure.length} 条`)
+        if (healthRecs.pressure?.length) {
+          totalCount += healthRecs.pressure.length
+          details.push(`血压 ${healthRecs.pressure.length} 条`)
         }
-        if (records.weight?.length) {
-          totalCount += records.weight.length
-          details.push(`体重 ${records.weight.length} 条`)
-        }
-        if (records.height?.length) {
-          totalCount += records.height.length
-          details.push(`身高 ${records.height.length} 条`)
+        if (healthRecs.weight?.length) {
+          totalCount += healthRecs.weight.length
+          details.push(`体重 ${healthRecs.weight.length} 条`)
         }
         
         formatted.push({ 

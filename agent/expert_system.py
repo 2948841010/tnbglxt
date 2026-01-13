@@ -645,6 +645,8 @@ class DataRecordExpert(Expert):
    - "体重是70kg"、"血糖9.0"
    - "测了血压120/80"
    - 明确给出具体数值
+   - **"从X到Y"、"从X降到Y"、"从X升到Y"** → 直接记录Y值（这是当前值）
+     例如："体重从100kg降到80kg" → 记录80kg（当前体重）
    
    设置 is_relative=false 或不设置，直接记录提供的值
 
@@ -717,7 +719,23 @@ class DataRecordExpert(Expert):
     ]
 }}
 
-示例4 - 用户说"我体重下降了10kg"（相对值，需要查询历史）：
+示例4 - 用户说"体重从100kg降到80kg"（从X到Y，直接记录当前值Y）：
+{{
+    "has_data": true,
+    "records": [
+        {{
+            "type": "weight",
+            "value": 80.0,
+            "unit": "kg",
+            "measure_time": "{current_time}",
+            "is_relative": false,
+            "needs_confirmation": false
+        }}
+    ]
+}}
+注意："从X到Y"表达中，Y是当前值，直接记录Y=80kg
+
+示例5 - 用户说"我体重下降了10kg"（相对值，需要查询历史）：
 {{
     "has_data": true,
     "records": [
@@ -736,7 +754,7 @@ class DataRecordExpert(Expert):
 2. 计算：80 + (-10) = 70kg
 3. 记录新值70kg
 
-示例5 - 用户说"我体重增加了5斤"（相对值，需要单位转换）：
+示例6 - 用户说"我体重增加了5斤"（相对值，需要单位转换）：
 {{
     "has_data": true,
     "records": [
@@ -752,7 +770,7 @@ class DataRecordExpert(Expert):
 }}
 注意：5斤 = 2.5kg，change为正数
 
-示例6 - 数据不合理，需要确认：
+示例7 - 数据不合理，需要确认：
 {{
     "has_data": true,
     "need_history": false,
@@ -768,7 +786,7 @@ class DataRecordExpert(Expert):
     ]
 }}
 
-示例7 - 用户说"我今天早上空腹血糖6.8，餐后血糖7.0"（多条血糖记录，需要正确识别类型）：
+示例8 - 用户说"我今天早上空腹血糖6.8，餐后血糖7.0"（多条血糖记录，需要正确识别类型）：
 {{
     "has_data": true,
     "records": [
@@ -797,7 +815,7 @@ class DataRecordExpert(Expert):
 - 识别到"餐后"关键词，第二条记录 measureType 设为 "餐后"
 - 两条记录的测量时间不同（早上8点和中午12:30）
 
-示例8 - 没有数据：
+示例9 - 没有数据：
 {{"has_data": false}}
 
 **关键要点**：
@@ -1491,7 +1509,7 @@ class Planner:
                 {"role": "system", "content": """你是一个智能规划器，负责分析用户问题并决定需要调用哪些专家，同时为每个专家分配具体的任务。
 
 可用的专家：
-1. 数据记录专家（DataRecordExpert）- **仅能记录以下3种健康数据：血糖、血压、体重**
+1. 数据记录专家（DataRecordExpert）- **记录以下3种健康数据：血糖、血压、体重**
 2. 问诊专家（ConsultationExpert）- 评估信息充足性，提出需要询问的问题
 3. 数据专家（DataExpert）- 查询和分析健康数据
 4. 知识专家（KnowledgeExpert）- 检索医学知识库
@@ -1500,9 +1518,10 @@ class Planner:
 7. 综合专家（SynthesisExpert）- 整合各专家意见（总是最后调用）
 
 重要规则：
-- **只有当用户明确提到血糖、血压、体重的具体数值时，才调用DataRecordExpert**
-- 例如："血糖7.3"、"血压120/80"、"体重70kg" → 调用DataRecordExpert
-- 例如："我感觉头晕"、"我想诊断"、"帮我看看" → **不要**调用DataRecordExpert
+- **DataRecordExpert调用条件**：用户提到血糖、血压、体重的具体数值时调用
+  * "血糖7.3"、"血压120/80"、"体重70kg" → 调用
+  * "体重从100kg降到80kg" → 调用（记录当前体重80kg）
+  * "我感觉头晕"、"我想诊断" → 不调用
 - 如果用户寻求诊断或健康评估，调用ConsultationExpert评估信息是否充足
 - 只有信息充足时才调用DiagnosisExpert
 - SynthesisExpert总是最后一个
@@ -1554,9 +1573,9 @@ class Planner:
 - 如果用户问题涉及"刚刚"、"之前"、"刚才"等时间词，请参考历史对话理解完整语境
 - 如果用户在追问或继续之前的话题，请考虑之前的对话内容
 - **DataRecordExpert调用判断**：
-  * 用户明确提到血糖/血压/体重数值 → 需要调用
-  * 用户只是询问、诊断、症状描述 → 不需要调用
-  * 例："血糖7.3" ✅调用；"我头晕" ❌不调用；"帮我诊断" ❌不调用
+  * 用户提到血糖/血压/体重的具体数值 → 需要调用
+  * 包括变化描述如"体重从X降到Y" → 记录当前值Y
+  * 用户只是询问、症状描述（无数值） → 不调用
 
 **reasoning撰写要求（必须遵守）**：
 - ✅ 好的示例："用户提到血糖7.3和头晕症状，先记录血糖数据，再评估症状与血糖的关系"

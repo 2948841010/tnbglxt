@@ -121,7 +121,7 @@ def query_user_health_records(user_id: int, record_type: str = "all", days: int 
         limit: 限制返回记录数量 (默认50条)
 
     Returns:
-        JSON格式的健康记录数据
+        JSON格式的健康记录数据（精简版）
     """
     
     mysql_conn = get_mysql_connection()
@@ -135,9 +135,9 @@ def query_user_health_records(user_id: int, record_type: str = "all", days: int 
     try:
         cursor = mysql_conn.cursor(dictionary=True)
         
-        # 查询用户基本信息 (MySQL)
+        # 查询用户基本信息 (MySQL) - 只保留必要字段
         cursor.execute("""
-            SELECT id, real_name, gender, birthday, phone, email
+            SELECT id, real_name
             FROM sys_user 
             WHERE id = %s AND is_deleted = 0
         """, (user_id,))
@@ -147,44 +147,57 @@ def query_user_health_records(user_id: int, record_type: str = "all", days: int 
             return json.dumps({"error": "用户不存在"})
         
         result = {
-            "user_info": user_info,
-            "health_records": {},
-            "query_params": {
-                "days": days,
-                "limit": limit,
-                "record_type": record_type
-            }
+            "user": user_info["real_name"],
+            "records": {}
         }
         
         # 计算时间范围（使用UTC时区以匹配MongoDB记录）
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=days)
         
+        # 精简血糖记录字段的辅助函数
+        def simplify_glucose(record, measure_time):
+            return {
+                "value": record.get("value"),
+                "type": record.get("measureType", ""),
+                "time": measure_time.strftime("%Y-%m-%d %H:%M")
+            }
+        
+        # 精简血压记录字段的辅助函数
+        def simplify_pressure(record, measure_time):
+            return {
+                "systolic": record.get("systolic"),
+                "diastolic": record.get("diastolic"),
+                "heartRate": record.get("heartRate"),
+                "time": measure_time.strftime("%Y-%m-%d %H:%M")
+            }
+        
+        # 精简体重记录字段的辅助函数
+        def simplify_weight(record, measure_time):
+            return {
+                "weight": record.get("weight"),
+                "time": measure_time.strftime("%Y-%m-%d %H:%M")
+            }
+        
         # 查询MongoDB中的健康记录
         if record_type in ["all", "glucose"]:
             glucose_collection = mongo_db.blood_glucose_records
-            # 查询用户的血糖记录文档
             glucose_doc = glucose_collection.find_one({"userId": user_id})
             
             if glucose_doc and "records" in glucose_doc:
-                # 从records数组中筛选最近的记录
                 records = glucose_doc["records"]
                 filtered_records = []
                 
                 for record in records:
                     if "measureTime" in record:
                         measure_time = normalize_datetime_to_utc(record["measureTime"])
-                        
                         if start_date <= measure_time <= end_date:
-                            record_copy = record.copy()
-                            record_copy["measureTime"] = measure_time.isoformat()
-                            filtered_records.append(record_copy)
+                            filtered_records.append((measure_time, record))
                 
-                # 按时间倒序排序并限制数量
-                filtered_records.sort(key=lambda x: x["measureTime"], reverse=True)
-                result["health_records"]["glucose"] = filtered_records[:limit]
+                filtered_records.sort(key=lambda x: x[0], reverse=True)
+                result["records"]["glucose"] = [simplify_glucose(r, t) for t, r in filtered_records[:limit]]
             else:
-                result["health_records"]["glucose"] = []
+                result["records"]["glucose"] = []
             
         if record_type in ["all", "pressure"]:
             pressure_collection = mongo_db.blood_pressure_records
@@ -197,16 +210,13 @@ def query_user_health_records(user_id: int, record_type: str = "all", days: int 
                 for record in records:
                     if "measureTime" in record:
                         measure_time = normalize_datetime_to_utc(record["measureTime"])
-                        
                         if start_date <= measure_time <= end_date:
-                            record_copy = record.copy()
-                            record_copy["measureTime"] = measure_time.isoformat()
-                            filtered_records.append(record_copy)
+                            filtered_records.append((measure_time, record))
 
-                filtered_records.sort(key=lambda x: x["measureTime"], reverse=True)
-                result["health_records"]["pressure"] = filtered_records[:limit]
+                filtered_records.sort(key=lambda x: x[0], reverse=True)
+                result["records"]["pressure"] = [simplify_pressure(r, t) for t, r in filtered_records[:limit]]
             else:
-                result["health_records"]["pressure"] = []
+                result["records"]["pressure"] = []
             
         if record_type in ["all", "weight"]:
             weight_collection = mongo_db.weight_records
@@ -219,16 +229,13 @@ def query_user_health_records(user_id: int, record_type: str = "all", days: int 
                 for record in records:
                     if "measureTime" in record:
                         measure_time = normalize_datetime_to_utc(record["measureTime"])
-                        
                         if start_date <= measure_time <= end_date:
-                            record_copy = record.copy()
-                            record_copy["measureTime"] = measure_time.isoformat()
-                            filtered_records.append(record_copy)
+                            filtered_records.append((measure_time, record))
 
-                filtered_records.sort(key=lambda x: x["measureTime"], reverse=True)
-                result["health_records"]["weight"] = filtered_records[:limit]
+                filtered_records.sort(key=lambda x: x[0], reverse=True)
+                result["records"]["weight"] = [simplify_weight(r, t) for t, r in filtered_records[:limit]]
             else:
-                result["health_records"]["weight"] = []
+                result["records"]["weight"] = []
         
         return json.dumps(result, ensure_ascii=False, default=str)
         
