@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.tlbglxt.mapper.MenuMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="org.example.tlbglxt.entity.Menu">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="parent_id" property="parentId" jdbcType="BIGINT"/>
+        <result column="menu_name" property="menuName" jdbcType="VARCHAR"/>
+        <result column="menu_code" property="menuCode" jdbcType="VARCHAR"/>
+        <result column="menu_type" property="menuType" jdbcType="TINYINT"/>
+        <result column="path" property="path" jdbcType="VARCHAR"/>
+        <result column="component" property="component" jdbcType="VARCHAR"/>
+        <result column="permission" property="permission" jdbcType="VARCHAR"/>
+        <result column="icon" property="icon" jdbcType="VARCHAR"/>
+        <result column="sort_order" property="sortOrder" jdbcType="INTEGER"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="create_by" property="createBy" jdbcType="BIGINT"/>
+        <result column="update_by" property="updateBy" jdbcType="BIGINT"/>
+        <result column="is_deleted" property="isDeleted" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        id, parent_id, menu_name, menu_code, menu_type, path, component, 
+        permission, icon, sort_order, status, create_time, update_time, 
+        create_by, update_by, is_deleted
+    </sql>
+
+    <!-- 根据ID查询菜单 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_menu
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 查询所有启用的菜单 -->
+    <select id="selectAllActive" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_menu
+        WHERE status = 1 AND is_deleted = 0
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 根据父ID查询子菜单 -->
+    <select id="selectByParentId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_menu
+        WHERE parent_id = #{parentId} AND status = 1 AND is_deleted = 0
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 根据用户ID查询有权限的菜单 -->
+    <select id="selectByUserId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT DISTINCT m.id, m.parent_id, m.menu_name, m.menu_code, m.menu_type, m.path, m.component, 
+               m.permission, m.icon, m.sort_order, m.status, m.create_time, m.update_time, 
+               m.create_by, m.update_by, m.is_deleted
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        INNER JOIN sys_user_role ur ON rm.role_id = ur.role_id
+        WHERE ur.user_id = #{userId} AND m.status = 1 AND m.is_deleted = 0
+        ORDER BY m.sort_order ASC, m.id ASC
+    </select>
+
+    <!-- 根据角色ID查询菜单 -->
+    <select id="selectByRoleId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT m.id, m.parent_id, m.menu_name, m.menu_code, m.menu_type, m.path, m.component, 
+               m.permission, m.icon, m.sort_order, m.status, m.create_time, m.update_time, 
+               m.create_by, m.update_by, m.is_deleted
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        WHERE rm.role_id = #{roleId} AND m.status = 1 AND m.is_deleted = 0
+        ORDER BY m.sort_order ASC, m.id ASC
+    </select>
+
+    <!-- 根据菜单类型查询菜单 -->
+    <select id="selectByMenuType" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_menu
+        WHERE menu_type = #{menuType} AND status = 1 AND is_deleted = 0
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <!-- 插入菜单 -->
+    <insert id="insert" parameterType="org.example.tlbglxt.entity.Menu" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_menu (
+            parent_id, menu_name, menu_code, menu_type, path, component,
+            permission, icon, sort_order, status, create_time, update_time,
+            create_by, update_by, is_deleted
+        ) VALUES (
+            #{parentId}, #{menuName}, #{menuCode}, #{menuType}, #{path}, #{component},
+            #{permission}, #{icon}, #{sortOrder}, #{status}, NOW(), NOW(),
+            #{createBy}, #{updateBy}, 0
+        )
+    </insert>
+
+    <!-- 更新菜单 -->
+    <update id="updateById" parameterType="org.example.tlbglxt.entity.Menu">
+        UPDATE sys_menu
+        <set>
+            <if test="parentId != null">parent_id = #{parentId},</if>
+            <if test="menuName != null and menuName != ''">menu_name = #{menuName},</if>
+            <if test="menuCode != null and menuCode != ''">menu_code = #{menuCode},</if>
+            <if test="menuType != null">menu_type = #{menuType},</if>
+            <if test="path != null">path = #{path},</if>
+            <if test="component != null">component = #{component},</if>
+            <if test="permission != null">permission = #{permission},</if>
+            <if test="icon != null">icon = #{icon},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 删除菜单（逻辑删除） -->
+    <update id="deleteById">
+        UPDATE sys_menu 
+        SET is_deleted = 1, update_time = NOW(), update_by = #{updateBy}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 检查菜单编码是否存在 -->
+    <select id="existsByMenuCode" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_menu
+        WHERE menu_code = #{menuCode} AND is_deleted = 0
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 检查路径是否存在 -->
+    <select id="existsByPath" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_menu
+        WHERE path = #{path} AND is_deleted = 0
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 检查是否有子菜单 -->
+    <select id="hasChildren" parameterType="java.lang.Long" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_menu
+        WHERE parent_id = #{parentId} AND is_deleted = 0
+    </select>
+
+</mapper> 

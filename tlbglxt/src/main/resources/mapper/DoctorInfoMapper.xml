@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.tlbglxt.mapper.DoctorInfoMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="org.example.tlbglxt.entity.DoctorInfo">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="doctor_no" property="doctorNo" jdbcType="VARCHAR"/>
+        <result column="department" property="department" jdbcType="VARCHAR"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="qualification_cert" property="qualificationCert" jdbcType="VARCHAR"/>
+        <result column="speciality" property="speciality" jdbcType="VARCHAR"/>
+        <result column="work_years" property="workYears" jdbcType="INTEGER"/>
+        <result column="hospital" property="hospital" jdbcType="VARCHAR"/>
+        <result column="introduction" property="introduction" jdbcType="LONGVARCHAR"/>
+        <result column="consultation_fee" property="consultationFee" jdbcType="DECIMAL"/>
+        <result column="online_status" property="onlineStatus" jdbcType="TINYINT"/>
+        <result column="rating" property="rating" jdbcType="DECIMAL"/>
+        <result column="consultation_count" property="consultationCount" jdbcType="INTEGER"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="create_by" property="createBy" jdbcType="BIGINT"/>
+        <result column="update_by" property="updateBy" jdbcType="BIGINT"/>
+        <result column="is_deleted" property="isDeleted" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, user_id, doctor_no, department, title, qualification_cert, speciality, 
+        work_years, hospital, introduction, consultation_fee, online_status, rating, 
+        consultation_count, status, create_time, update_time, create_by, update_by, is_deleted
+    </sql>
+
+    <!-- 根据用户ID查询医生信息 -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM doctor_info
+        WHERE user_id = #{userId} AND is_deleted = 0
+    </select>
+
+    <!-- 根据医生编号查询医生信息 -->
+    <select id="selectByDoctorNo" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM doctor_info
+        WHERE doctor_no = #{doctorNo} AND is_deleted = 0
+    </select>
+
+    <!-- 根据ID查询医生信息 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM doctor_info
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 插入医生信息 -->
+    <insert id="insert" parameterType="org.example.tlbglxt.entity.DoctorInfo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO doctor_info (
+            user_id, doctor_no, department, title, qualification_cert, speciality,
+            work_years, hospital, introduction, consultation_fee, online_status,
+            rating, consultation_count, status, create_time, update_time, create_by, update_by, is_deleted
+        ) VALUES (
+            #{userId}, #{doctorNo}, #{department}, #{title}, #{qualificationCert}, #{speciality},
+            #{workYears}, #{hospital}, #{introduction}, #{consultationFee}, #{onlineStatus},
+            #{rating}, #{consultationCount}, #{status}, #{createTime}, #{updateTime}, #{createBy}, #{updateBy}, #{isDeleted}
+        )
+    </insert>
+
+    <!-- 根据ID更新医生信息 -->
+    <update id="updateById" parameterType="org.example.tlbglxt.entity.DoctorInfo">
+        UPDATE doctor_info
+        <set>
+            <if test="doctorNo != null">doctor_no = #{doctorNo},</if>
+            <if test="department != null">department = #{department},</if>
+            <if test="title != null">title = #{title},</if>
+            <if test="qualificationCert != null">qualification_cert = #{qualificationCert},</if>
+            <if test="speciality != null">speciality = #{speciality},</if>
+            <if test="workYears != null">work_years = #{workYears},</if>
+            <if test="hospital != null">hospital = #{hospital},</if>
+            <if test="introduction != null">introduction = #{introduction},</if>
+            <if test="consultationFee != null">consultation_fee = #{consultationFee},</if>
+            <if test="onlineStatus != null">online_status = #{onlineStatus},</if>
+            <if test="rating != null">rating = #{rating},</if>
+            <if test="consultationCount != null">consultation_count = #{consultationCount},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+        </set>
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 根据用户ID更新医生信息 -->
+    <update id="updateByUserId" parameterType="org.example.tlbglxt.entity.DoctorInfo">
+        UPDATE doctor_info
+        <set>
+            <if test="doctorNo != null">doctor_no = #{doctorNo},</if>
+            <if test="department != null">department = #{department},</if>
+            <if test="title != null">title = #{title},</if>
+            <if test="qualificationCert != null">qualification_cert = #{qualificationCert},</if>
+            <if test="speciality != null">speciality = #{speciality},</if>
+            <if test="workYears != null">work_years = #{workYears},</if>
+            <if test="hospital != null">hospital = #{hospital},</if>
+            <if test="introduction != null">introduction = #{introduction},</if>
+            <if test="consultationFee != null">consultation_fee = #{consultationFee},</if>
+            <if test="onlineStatus != null">online_status = #{onlineStatus},</if>
+            <if test="rating != null">rating = #{rating},</if>
+            <if test="consultationCount != null">consultation_count = #{consultationCount},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+        </set>
+        WHERE user_id = #{userId} AND is_deleted = 0
+    </update>
+
+    <!-- 根据ID删除医生信息（逻辑删除） -->
+    <update id="deleteById">
+        UPDATE doctor_info 
+        SET is_deleted = 1, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据用户ID删除医生信息（逻辑删除） -->
+    <update id="deleteByUserId">
+        UPDATE doctor_info 
+        SET is_deleted = 1, update_time = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 查询所有活跃的医生信息 -->
+    <select id="selectAllActiveDoctors" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM doctor_info
+        WHERE status = 1 AND is_deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+</mapper> 

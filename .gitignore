@@ -1,0 +1,52 @@
+# 文档相关
+lunwen/
+docs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.nuxt/
+.output/
+
+# Java
+target/
+*.jar
+*.war
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 数据库和向量库
+*.db
+*.sqlite
+chroma_db/
+
+# 大模型文件
+rag/data/models/
+*.bin
+*.safetensors
+
+# 日志
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+

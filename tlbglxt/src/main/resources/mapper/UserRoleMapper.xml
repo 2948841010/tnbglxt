@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.tlbglxt.mapper.UserRoleMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="org.example.tlbglxt.entity.UserRole">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="role_id" property="roleId" jdbcType="BIGINT"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="create_by" property="createBy" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        id, user_id, role_id, create_time, create_by
+    </sql>
+
+    <!-- 根据用户ID查询用户角色关联 -->
+    <select id="selectByUserId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user_role
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 根据角色ID查询用户角色关联 -->
+    <select id="selectByRoleId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_user_role
+        WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 检查用户是否拥有指定角色 -->
+    <select id="existsByUserIdAndRoleId" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_user_role
+        WHERE user_id = #{userId} AND role_id = #{roleId}
+    </select>
+
+    <!-- 插入用户角色关联 -->
+    <insert id="insert" parameterType="org.example.tlbglxt.entity.UserRole" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_user_role (user_id, role_id, create_time, create_by)
+        VALUES (#{userId}, #{roleId}, NOW(), #{createBy})
+    </insert>
+
+    <!-- 批量插入用户角色关联 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO sys_user_role (user_id, role_id, create_time, create_by)
+        VALUES
+        <foreach collection="userRoles" item="item" separator=",">
+            (#{item.userId}, #{item.roleId}, NOW(), #{item.createBy})
+        </foreach>
+    </insert>
+
+    <!-- 删除用户角色关联 -->
+    <delete id="deleteByUserIdAndRoleId">
+        DELETE FROM sys_user_role
+        WHERE user_id = #{userId} AND role_id = #{roleId}
+    </delete>
+
+    <!-- 根据用户ID删除所有角色关联 -->
+    <delete id="deleteByUserId" parameterType="java.lang.Long">
+        DELETE FROM sys_user_role
+        WHERE user_id = #{userId}
+    </delete>
+
+    <!-- 根据角色ID删除所有用户关联 -->
+    <delete id="deleteByRoleId" parameterType="java.lang.Long">
+        DELETE FROM sys_user_role
+        WHERE role_id = #{roleId}
+    </delete>
+
+</mapper> 

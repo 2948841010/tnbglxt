@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.tlbglxt.mapper.RoleMenuMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="org.example.tlbglxt.entity.RoleMenu">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="role_id" property="roleId" jdbcType="BIGINT"/>
+        <result column="menu_id" property="menuId" jdbcType="BIGINT"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="create_by" property="createBy" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        id, role_id, menu_id, create_time, create_by
+    </sql>
+
+    <!-- 根据角色ID查询角色菜单关联 -->
+    <select id="selectByRoleId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_role_menu
+        WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 根据菜单ID查询角色菜单关联 -->
+    <select id="selectByMenuId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_role_menu
+        WHERE menu_id = #{menuId}
+    </select>
+
+    <!-- 根据角色ID列表查询菜单ID列表 -->
+    <select id="selectMenuIdsByRoleIds" resultType="java.lang.Long">
+        SELECT DISTINCT menu_id
+        FROM sys_role_menu
+        WHERE role_id IN
+        <foreach collection="roleIds" item="roleId" open="(" close=")" separator=",">
+            #{roleId}
+        </foreach>
+    </select>
+
+    <!-- 检查角色是否拥有指定菜单权限 -->
+    <select id="existsByRoleIdAndMenuId" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_role_menu
+        WHERE role_id = #{roleId} AND menu_id = #{menuId}
+    </select>
+
+    <!-- 插入角色菜单关联 -->
+    <insert id="insert" parameterType="org.example.tlbglxt.entity.RoleMenu" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_role_menu (role_id, menu_id, create_time, create_by)
+        VALUES (#{roleId}, #{menuId}, NOW(), #{createBy})
+    </insert>
+
+    <!-- 批量插入角色菜单关联 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO sys_role_menu (role_id, menu_id, create_time, create_by)
+        VALUES
+        <foreach collection="roleMenus" item="item" separator=",">
+            (#{item.roleId}, #{item.menuId}, NOW(), #{item.createBy})
+        </foreach>
+    </insert>
+
+    <!-- 删除角色菜单关联 -->
+    <delete id="deleteByRoleIdAndMenuId">
+        DELETE FROM sys_role_menu
+        WHERE role_id = #{roleId} AND menu_id = #{menuId}
+    </delete>
+
+    <!-- 根据角色ID删除所有菜单关联 -->
+    <delete id="deleteByRoleId" parameterType="java.lang.Long">
+        DELETE FROM sys_role_menu
+        WHERE role_id = #{roleId}
+    </delete>
+
+    <!-- 根据菜单ID删除所有角色关联 -->
+    <delete id="deleteByMenuId" parameterType="java.lang.Long">
+        DELETE FROM sys_role_menu
+        WHERE menu_id = #{menuId}
+    </delete>
+
+</mapper> 
